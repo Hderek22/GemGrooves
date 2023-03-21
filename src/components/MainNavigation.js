@@ -10,25 +10,43 @@ function MainNavigation() {
           <li>
             <NavLink
               to="/"
-              className={({ isActive }) =>
-                isActive ? classes.active : undefined
-              }
-              // style={({ isActive }) => ({
-              //   textAlign: isActive ? 'center' : 'left',
-              // })}
+              className={({ isActive }) => (isActive ? classes.active : undefined)}
+              style={({ isActive }) => ({ textAlign: isActive ? 'center' : 'left' })}
               end
             >
-              Home
+              GemGrooves
             </NavLink>
           </li>
           <li>
             <NavLink
-              to="/products"
-              className={({ isActive }) =>
-                isActive ? classes.active : undefined
-              }
+              to="/OurPurpose"
+              className={({ isActive }) => (isActive ? classes.active : undefined)}
             >
-              Products
+              Our Purpose
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/TheLounge"
+              className={({ isActive }) => (isActive ? classes.active : undefined)}
+            >
+              The Lounge
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/TheStudio"
+              className={({ isActive }) => (isActive ? classes.active : undefined)}
+            >
+              The Studio
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/TheRecordShop"
+              className={({ isActive }) => (isActive ? classes.active : undefined)}
+            >
+              The Record Shop
             </NavLink>
           </li>
         </ul>

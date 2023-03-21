@@ -1,24 +1,27 @@
 .header {
-    max-width: 60rem;
-    margin: auto;
-    padding: 2rem;
-    display: flex;
-    justify-content: center;
-  }
-  
-  .list {
-    display: flex;
-    gap: 1rem;
-  }
-  
-  .list a {
-    text-decoration: none;
-    color: var(--color-primary-400);
-  }
-  
-  .list a:hover,
-  .list a.active {
-    color: var(--color-primary-800);
-    text-decoration: underline;
-  }
-  
+  max-width: 60rem;
+  margin: auto;
+  padding: 2rem;
+  display: flex;
+  justify-content: center;
+}
+
+.list {
+  display: flex;
+  gap: 1rem;
+}
+
+.list a {
+  display: inline-block;
+  background-color: orange;
+  color: black;
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.3s ease;
+}
+
+.list a:hover,
+.list a.active {
+  background-color: darkorange;
+}
