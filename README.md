@@ -1,17 +1,6 @@
-# Overview
+# GemGrooves
 
-In this project we use reactdom and navlinks to route to multiple pages in a without http requests .
+## A singer/songwriters marketplace.
 
+![Gemgroove copy](https://user-images.githubusercontent.com/94722790/213843430-83f1372f-4226-413b-a922-fe05141394ad.jpg)
 
-## Available Scripts
-
-In the project directory, you can run:
-
-### `npm install`
-
-To install node dependencies.
-### `npm start`
-
-
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
