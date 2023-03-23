@@ -46,8 +46,8 @@ function TheLounge() {
   };
 
   const dropzoneStyle = {
-    width: '8rem',
-    height: '8rem',
+    width: '4rem',
+    height: '2rem',
     borderRadius: '100%',
     border: '2px solid orange',
     marginBottom: '2rem',
@@ -62,7 +62,6 @@ function TheLounge() {
 
   return (
     <div style={centerStyle}>
-      <img src={GemGrooveThumb} alt="GemGroove Thumb" style={logoStyle} />
      
       <div style={dropzoneStyle} onDrop={handleDrop} onDragOver={(event) => event.preventDefault()}></div>      {audioFile ? (
         <div>
@@ -75,7 +74,8 @@ function TheLounge() {
         </div>
       ) : (
         <p style={{ color: 'orange' }}>Drag and Drop your Jam to hear its awesomeness!</p>
-      )}
+        )}
+        <img src={GemGrooveThumb} alt="GemGroove Thumb" style={logoStyle} />
     </div>
   );
 }
