@@ -1,35 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import GemGrooveThumb from './GemGrooveThumb.jpg';
 
 function OurPurpose() {
-  const [audioFile, setAudioFile] = useState(null);
-  const [audioElement, setAudioElement] = useState(null);
-
-  const handleDrop = (event) => {
-    event.preventDefault();
-    const file = event.dataTransfer.files[0];
-    setAudioFile(file);
-    setAudioElement(new Audio(URL.createObjectURL(file)));
-  };
-
-  const handlePlay = () => {
-    audioElement.play();
-  };
-
-  const handlePause = () => {
-    audioElement.pause();
-  };
-
-  const handleStop = () => {
-    audioElement.pause();
-    audioElement.currentTime = 0;
-  };
-
-  const handleClear = () => {
-    setAudioFile(null);
-    setAudioElement(null);
-  };
-
   const centerStyle = {
     display: 'flex',
     flexDirection: 'column',
@@ -40,30 +12,27 @@ function OurPurpose() {
     color: 'orange',
   };
 
+
+  const fairPayStyle = {
+    maxWidth: '40rem',
+    textAlign: 'center',
+  };
+
+
   const logoStyle = {
     width: '20rem',
-    //marginBottom: '1rem',
+    marginBottom: '12rem',
   };
-
-  const dropzoneStyle = {
-    width: '8rem',
-    height: '8rem',
-    borderRadius: '100%',
-    border: '2px solid orange',
-    marginBottom: '2rem',
-//    backgroundImage: `url(${GemGrooveThumb})`,
-    backgroundSize: 'cover'
-  };
-
-
-
-
 
 
   return (
     <div style={centerStyle}>
+      <p style={fairPayStyle}>
+        Many artists in the music industry have ripped off. There are countless example of performers gettin ripped off by their record labels due to complex contracts, exploitative deals, and downright greed. 
+        GemGroove is her to change that.  We strive to give singer/songwriters a platform to sell their songs directly to the listeners and be able to make a decent living without having to reach a gazzillion listeners.
+      </p>
       <img src={GemGrooveThumb} alt="GemGroove Thumb" style={logoStyle} />
-     </div>
+    </div>
   );
 }
 
