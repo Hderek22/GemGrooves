@@ -1,17 +1,22 @@
 import React, { useState } from 'react';
 import GemGrooveThumb from './GemGrooveThumb.jpg';
 
-function TheLounge() {
+function TheStudio() {
   const [audioFile, setAudioFile] = useState(null);
   const [audioElement, setAudioElement] = useState(null);
+  const [connected, setConnected] = useState(false);
 
   const handleDrop = (event) => {
     event.preventDefault();
+    if (!connected) {
+      alert('Please connect your wallet first!');
+      return;
+    }
     const file = event.dataTransfer.files[0];
     setAudioFile(file);
     setAudioElement(new Audio(URL.createObjectURL(file)));
   };
-
+  
   const handlePlay = () => {
     audioElement.play();
   };
@@ -28,6 +33,16 @@ function TheLounge() {
   const handleClear = () => {
     setAudioFile(null);
     setAudioElement(null);
+  };
+
+  const handleConnectWallet = () => {
+    if (window.ethereum) {
+      window.ethereum.request({ method: 'eth_requestAccounts' })
+        .then(() => setConnected(true))
+        .catch((error) => console.error(error));
+    } else {
+      console.error('Metamask not detected');
+    }
   };
 
   const centerStyle = {
@@ -55,15 +70,24 @@ function TheLounge() {
     backgroundSize: 'cover'
   };
 
-
-
-
-
-
+  const connectButtonStyle = {
+    position: 'absolute',
+    bottom: '2rem',
+    right: '2rem',
+    backgroundColor: 'orange',
+    color: 'black',
+    padding: '1rem 2rem',
+    borderRadius: '0.5rem',
+    border: 'none',
+    fontSize: '1rem',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+  };
+  
   return (
     <div style={centerStyle}>
-     
-      <div style={dropzoneStyle} onDrop={handleDrop} onDragOver={(event) => event.preventDefault()}></div>      {audioFile ? (
+      <div style={dropzoneStyle} onDrop={handleDrop} onDragOver={(event) => event.preventDefault()}></div>
+      {audioFile ? (
         <div>
           <p style={{ color: 'orange' }}>Now playing: {audioFile.name}</p>
           <audio id="audio" src={URL.createObjectURL(audioFile)} ref={(el) => setAudioElement(el)}></audio>
@@ -74,10 +98,16 @@ function TheLounge() {
         </div>
       ) : (
         <p style={{ color: 'orange' }}>Drag and Drop your Jam here to turn it into a GemGroove!</p>
-        )}
-        <img src={GemGrooveThumb} alt="GemGroove Thumb" style={logoStyle} />
+      )}
+      <img src={GemGrooveThumb} alt="GemGroove Thumb" style={logoStyle} />
+      {!connected && (
+        <button style={connectButtonStyle} onClick={handleConnectWallet}>
+          MetaMask
+        </button>
+      )}
     </div>
   );
-}
+    
+  }
 
-export default TheLounge;
+export default TheStudio;
