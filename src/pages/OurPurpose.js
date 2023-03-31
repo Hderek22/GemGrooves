@@ -28,8 +28,11 @@ function OurPurpose() {
   return (
     <div style={centerStyle}>
       <p style={fairPayStyle}>
-        Many artists in the music industry have ripped off. There are countless example of performers gettin ripped off by their record labels due to complex contracts, exploitative deals, and downright greed. 
-        GemGroove is her to change that.  We strive to give singer/songwriters a platform to sell their songs directly to the listeners and be able to make a decent living without having to reach a gazzillion listeners.
+        
+        With GemGrooves, musicians can easily 'mint a jam' into and NFT and sell directly to ther fans. 
+        We are a user-friendly, non-technical environment that allows musicians to focus on creating and sharing their work without the need for specialized technical knowledge. 
+        Musicians can take control of their music and reach their fans directly without the need for intermediaries or record labels that often take a significant cut of their revenue creating a need for an unrealistic amount of fans to make a living. 
+
       </p>
       <img src={GemGrooveThumb} alt="GemGroove Thumb" style={logoStyle} />
     </div>
