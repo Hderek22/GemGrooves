@@ -29,10 +29,13 @@ function OurPurpose() {
     <div style={centerStyle}>
       <p style={fairPayStyle}>
         
-        With GemGrooves, musicians can easily 'mint a jam' into and NFT and sell directly to ther fans. 
-        We are a user-friendly, non-technical environment that allows musicians to focus on creating and sharing their work without the need for specialized technical knowledge. 
-        Musicians can take control of their music and reach their fans directly without the need for intermediaries or record labels that often take a significant cut of their revenue creating a need for an unrealistic amount of fans to make a living. 
+       GemGrooves provides musicians with an innovative platform to sell their songs using Non-Fungible Token (NFT) technologies. We are revolutionizing the music industry by allowing musicians to earn more for their work while giving fans a unique opportunity to own the rights to their favorite music.
 
+Unlike traditional music platforms, GemGrooves allows musicians to have a direct connection between the artist and their fans. Using GemGrooves, musicians can maintain ownership of their work and receive direct payments for every sale, eliminating the need for intermediaries that take a significant portion of their earnings.
+
+Moreover, GemGrooves provides unique features such as exclusive rights to music, allowing fans to own the rights to a particular song or album, giving them access to special perks such as backstage passes or VIP access to shows. This not only provides fans with a unique experience but also provides artists with a reliable source of income beyond music sales.
+
+With unique features such as exclusive rights to music, GemGrooves is poised to revolutionize the music industry, providing artists with a sustainable and reliable source of income while giving fans a unique experience they won't find anywhere else.
       </p>
       <img src={GemGrooveThumb} alt="GemGroove Thumb" style={logoStyle} />
     </div>
