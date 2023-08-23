@@ -29,7 +29,7 @@ function OurPurpose() {
     <div style={centerStyle}>
       <p style={fairPayStyle}>
         
-      Our Purpose is simple. Give the control back to the artist, where it belongs.
+      Our Purpose is simple. Put the control back into the hands of the artist...where it always belonged.
       
       <img src={GemGrooveThumb} alt="GemGroove Thumb" style={logoStyle} />
     </div>
