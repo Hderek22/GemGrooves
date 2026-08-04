@@ -6,4 +6,8 @@ coverage.json
 typechain/
 typechain-types/
 .env
-deployments/*.json
+# Real deployment records (baseSepolia.json, base.json, ...) are tracked —
+# they're what apps/web syncs addresses/ABIs from. Ephemeral local-network
+# runs are not.
+deployments/localhost.json
+deployments/hardhat.json
