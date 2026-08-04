@@ -1,0 +1,10 @@
+.dropzone {
+  width: 6rem;
+  height: 6rem;
+  border-radius: 100%;
+  border: 2px solid var(--color-primary-900);
+}
+
+.logo {
+  width: 20rem;
+}

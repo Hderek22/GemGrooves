@@ -1,13 +1,12 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 
-import HomePage from './pages/Home';
-import Products from './pages/Products';
 import ErrorPage from './pages/Error';
-import RootLayout from './pages/Root';
-import TheStudio from './pages/TheStudio';
-import TheLounge from './pages/TheLounge';
+import Home from './pages/Home';
 import OurPurpose from './pages/OurPurpose';
+import RootLayout from './pages/Root';
+import TheLounge from './pages/TheLounge';
 import TheRecordShop from './pages/TheRecordShop';
+import TheStudio from './pages/TheStudio';
 
 const router = createBrowserRouter([
   {
@@ -15,18 +14,17 @@ const router = createBrowserRouter([
     element: <RootLayout />,
     errorElement: <ErrorPage />,
     children: [
-      { path: '/', element: <HomePage /> },
-      { path: '/products', element: <Products /> },
-      { path: '/thestudio', element: <TheStudio /> },
-      { path: '/thelounge', element: <TheLounge /> },
+      { path: '/', element: <Home /> },
       { path: '/OurPurpose', element: <OurPurpose /> },
+      { path: '/TheLounge', element: <TheLounge /> },
+      { path: '/TheStudio', element: <TheStudio /> },
       { path: '/TheRecordShop', element: <TheRecordShop /> },
     ],
-  }
+  },
 ]);
 
 function App() {
-  return <RouterProvider router={router} />;
+  return <RouterProvider router={router} future={{ v7_startTransition: true }} />;
 }
 
 export default App;

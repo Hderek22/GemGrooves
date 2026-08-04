@@ -1,0 +1,8 @@
+.logo {
+  width: 20rem;
+}
+
+.hint {
+  max-width: 30rem;
+  color: var(--color-gray-200);
+}

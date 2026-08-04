@@ -1,0 +1,23 @@
+.logo {
+  width: 12rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.8em;
+  letter-spacing: 0.05em;
+  color: var(--color-primary-900);
+}
+
+.tagline {
+  max-width: 32rem;
+  margin: 0;
+  color: var(--color-gray-200);
+}
+
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+}
