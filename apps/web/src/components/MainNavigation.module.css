@@ -1,8 +1,19 @@
 .header {
-  max-width: 60rem;
+  max-width: 72rem;
   width: 100%;
   margin: 0 auto;
   padding: 1.5rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.nav {
+  flex: 1;
+  display: flex;
+  justify-content: center;
 }
 
 .list {

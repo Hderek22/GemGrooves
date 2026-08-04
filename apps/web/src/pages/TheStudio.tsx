@@ -3,7 +3,6 @@ import type { DragEvent } from 'react';
 import gemGrooveThumb from '../assets/GemGrooveThumb.jpg';
 import AudioPlayer from '../components/AudioPlayer';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
-import buttons from '../styles/buttons.module.css';
 import layout from '../styles/layout.module.css';
 import styles from './TheStudio.module.css';
 
@@ -35,14 +34,6 @@ function TheStudio() {
         emptyLabel="Drag and drop your jam here to turn it into a GemGroove!"
       />
       <img src={gemGrooveThumb} alt="GemGrooves" className={styles.logo} />
-      <button
-        type="button"
-        className={`${buttons.pill} ${styles.connectButton}`}
-        disabled
-        title="Wallet connection is coming in the next phase"
-      >
-        Connect Wallet
-      </button>
     </div>
   );
 }
