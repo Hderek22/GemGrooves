@@ -8,6 +8,7 @@
     "node": "hardhat node",
     "deploy:localhost": "hardhat run scripts/deploy.js --network localhost && npm run sync:web",
     "seed:localhost": "hardhat run scripts/seed-sample-track.js --network localhost",
+    "mint-test-tokens:localhost": "hardhat run scripts/mint-test-tokens.js --network localhost",
     "deploy:testnet": "hardhat run scripts/deploy.js --network base-sepolia && npm run sync:web",
     "deploy:mainnet": "hardhat run scripts/deploy.js --network base && npm run sync:web",
     "sync:web": "node scripts/sync-web-config.js"
