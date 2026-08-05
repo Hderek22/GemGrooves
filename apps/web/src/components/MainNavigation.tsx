@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 
 import ConnectWalletButton from './ConnectWalletButton';
+import DevMockConnect from './DevMockConnect';
 import classes from './MainNavigation.module.css';
 
 const links = [
@@ -29,7 +30,10 @@ function MainNavigation() {
           ))}
         </ul>
       </nav>
-      <ConnectWalletButton />
+      <div className={classes.walletArea}>
+        <ConnectWalletButton />
+        {import.meta.env.DEV && <DevMockConnect />}
+      </div>
     </header>
   );
 }

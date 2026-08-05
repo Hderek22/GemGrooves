@@ -59,6 +59,8 @@ function loadDeployments() {
       network: record.network,
       nft: record.contracts.GemGroovesNFT,
       marketplace: record.contracts.GemGroovesMarketplace,
+      usdc: record.config.usdc,
+      dai: record.config.dai,
     };
   }
   return byChainId;
@@ -88,6 +90,8 @@ export type GemGroovesDeployment = {
   network: string;
   nft: \`0x\${string}\`;
   marketplace: \`0x\${string}\`;
+  usdc: \`0x\${string}\`;
+  dai: \`0x\${string}\`;
 };
 
 export const deployments: Record<number, GemGroovesDeployment> = ${JSON.stringify(

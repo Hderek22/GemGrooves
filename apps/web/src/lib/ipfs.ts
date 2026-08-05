@@ -1,3 +1,5 @@
+export type { PinRequest, PinResponse } from './pin-types';
+
 const DEFAULT_GATEWAY = 'https://ipfs.io/ipfs/';
 
 /** Resolves an ipfs:// URI to an HTTP gateway URL. Non-ipfs URIs (https://, data:, ...) pass through unchanged. */

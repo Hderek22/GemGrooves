@@ -39,3 +39,20 @@
 .list a.active {
   background-color: var(--color-primary-700);
 }
+
+.walletArea {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+
+.walletArea button:not([class]) {
+  background: none;
+  border: none;
+  color: var(--color-gray-500);
+  font-size: 0.7em;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
