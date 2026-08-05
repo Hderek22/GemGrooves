@@ -15,31 +15,42 @@ async function main() {
   const FEE_RECIPIENT    = process.env.FEE_RECIPIENT || deployer.address;
 
   const isDevNetwork = network.name === "localhost" || network.name === "hardhat";
+  const isMainnet = network.name === "base";
   let USDC_ADDRESS = process.env.USDC_ADDRESS;
   let DAI_ADDRESS  = process.env.DAI_ADDRESS;
 
-  if (isDevNetwork && (!USDC_ADDRESS || !DAI_ADDRESS)) {
-    // No real USDC/DAI exist on a local chain regardless of address — stand
-    // up mocks so buyWithToken() has something real to call.
-    const ERC20Mock = await ethers.getContractFactory("ERC20Mock");
-    if (!USDC_ADDRESS) {
+  if (!USDC_ADDRESS) {
+    if (isDevNetwork) {
+      const ERC20Mock = await ethers.getContractFactory("ERC20Mock");
       const usdc = await ERC20Mock.deploy("USD Coin (mock)", "USDC");
       await usdc.waitForDeployment();
       USDC_ADDRESS = await usdc.getAddress();
       console.log("Mock USDC deployed to:", USDC_ADDRESS);
-    }
-    if (!DAI_ADDRESS) {
-      const dai = await ERC20Mock.deploy("Dai Stablecoin (mock)", "DAI");
-      await dai.waitForDeployment();
-      DAI_ADDRESS = await dai.getAddress();
-      console.log("Mock DAI deployed to:", DAI_ADDRESS);
+    } else {
+      // Verified against BaseScan — Circle's real Base Sepolia/mainnet USDC
+      // (same address on both, per Circle's cross-chain deployment).
+      USDC_ADDRESS = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
     }
   }
 
-  // Defaults below are Base Sepolia testnet addresses — re-verify against
-  // current Base docs before any real testnet/mainnet deploy.
-  USDC_ADDRESS = USDC_ADDRESS || "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
-  DAI_ADDRESS  = DAI_ADDRESS  || "0x7683022d84F726a96c4A6611cD31DBf5409c0Ac9";
+  if (!DAI_ADDRESS) {
+    if (isMainnet) {
+      // Unlike USDC, there's no single canonical DAI address we've verified
+      // for Base mainnet — MakerDAO/Sky's real deployment needs confirming
+      // before a mainnet deploy. Refusing to guess with real funds at stake.
+      throw new Error(
+        "DAI_ADDRESS must be set explicitly for a Base mainnet deploy — " +
+          "verify the real DAI contract address on Base first, no default is assumed here."
+      );
+    }
+    // Base Sepolia has no official DAI deployment (unlike USDC, which
+    // Circle issues on testnets too) — stand up our own mock stand-in.
+    const ERC20Mock = await ethers.getContractFactory("ERC20Mock");
+    const dai = await ERC20Mock.deploy("Dai Stablecoin (mock)", "DAI");
+    await dai.waitForDeployment();
+    DAI_ADDRESS = await dai.getAddress();
+    console.log("Mock DAI deployed to:", DAI_ADDRESS);
+  }
 
   const Marketplace = await ethers.getContractFactory("GemGroovesMarketplace");
   const marketplace = await Marketplace.deploy(

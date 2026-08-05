@@ -41,7 +41,7 @@ BASESCAN_KEY=your_basescan_api_key
 
 `.env` is already git-ignored in this package — **never commit it.**
 
-`USDC_ADDRESS` / `DAI_ADDRESS` / `PLATFORM_FEE_BPS` / `FEE_RECIPIENT` are optional overrides in `.env` — `scripts/deploy.js` falls back to Base Sepolia defaults if unset. **Re-verify the default USDC/DAI addresses against current Base docs before deploying** — Base Sepolia may not have an official DAI deployment, in which case deploy a second `ERC20Mock` as a testnet stand-in and set `DAI_ADDRESS` to that.
+`USDC_ADDRESS` / `DAI_ADDRESS` / `PLATFORM_FEE_BPS` / `FEE_RECIPIENT` are optional overrides in `.env`. Leave both token addresses unset for a Base Sepolia deploy: `USDC_ADDRESS` defaults to Circle's real Base Sepolia USDC (verified against BaseScan), and since Base Sepolia has no official DAI deployment, `deploy.js` automatically deploys a fresh mock DAI stand-in when `DAI_ADDRESS` isn't set.
 
 ---
 
