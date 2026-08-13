@@ -4,10 +4,12 @@ import { isAddress, parseUnits, type Address } from 'viem';
 import { useAccount } from 'wagmi';
 
 import gemGrooveThumb from '../assets/GemGrooveThumb.jpg';
-import AudioPlayer from '../components/AudioPlayer';
+import Transport from '../components/Transport';
+import TrackRow from '../components/TrackRow';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { useIpfsUpload } from '../hooks/useIpfsUpload';
 import { useMintTrack } from '../hooks/useMintTrack';
+import { useMultiTrackSession } from '../hooks/useMultiTrackSession';
 import { usePayTokenOptions } from '../hooks/usePayTokenOptions';
 import buttons from '../styles/buttons.module.css';
 import layout from '../styles/layout.module.css';
@@ -21,6 +23,7 @@ interface SplitRow {
 function TheStudio() {
   const { address, isConnected } = useAccount();
   const player = useAudioPlayer();
+  const session = useMultiTrackSession();
   const { uploadTrack, isUploading } = useIpfsUpload();
   const { options: payTokenOptions } = usePayTokenOptions();
   const {
@@ -61,12 +64,6 @@ function TheStudio() {
 
   const shareTotal = splits.reduce((sum, row) => sum + row.sharePercent, 0);
   const shareTotalValid = Math.round(shareTotal * 100) === 10000;
-
-  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    const file = event.dataTransfer.files[0];
-    if (file) player.loadFile(file);
-  };
 
   function validate(): string | null {
     if (!player.file) return 'Drop an audio file first.';
@@ -170,24 +167,55 @@ function TheStudio() {
 
   const busy = isUploading || isPending || isConfirming || isSubmitting;
 
+  const handleSessionDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const file = event.dataTransfer.files[0];
+    if (file) void session.addTrackFromFile(file);
+  };
+
+  const handleRecordClick = () => {
+    if (session.isRecording) {
+      void session.stopRecordingTrack();
+    } else {
+      void session.startRecordingTrack();
+    }
+  };
+
   return (
     <div className={styles.page}>
       <div
-        className={styles.dropzone}
-        onDrop={handleDrop}
+        className={styles.studioZone}
+        onDrop={handleSessionDrop}
         onDragOver={(event) => event.preventDefault()}
-      />
-      <AudioPlayer
-        file={player.file}
-        objectUrl={player.objectUrl}
-        isPlaying={player.isPlaying}
-        audioRef={player.audioRef}
-        onPlay={player.play}
-        onPause={player.pause}
-        onStop={player.stop}
-        onClear={player.clear}
-        emptyLabel="Drag and drop your jam here to turn it into a GemGroove!"
-      />
+      >
+        <Transport
+          isPlaying={session.isPlaying}
+          isRecording={session.isRecording}
+          currentTime={session.currentTime}
+          durationSec={session.sessionDurationSec}
+          onPlay={session.play}
+          onPause={session.pause}
+          onStop={session.stop}
+          onRecordToggle={handleRecordClick}
+          onAddFile={(file) => void session.addTrackFromFile(file)}
+          micError={session.micError?.message}
+        />
+
+        {session.tracks.length === 0 ? (
+          <p className={styles.hint}>Record or drop audio files here to start building your GemGroove.</p>
+        ) : (
+          <div className={styles.trackList}>
+            {session.tracks.map((track) => (
+              <TrackRow
+                key={track.id}
+                track={track}
+                onUpdate={(patch) => session.updateTrack(track.id, patch)}
+                onRemove={() => session.removeTrack(track.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       <form className={styles.form} onSubmit={handleSubmit}>
         <div className={styles.field}>

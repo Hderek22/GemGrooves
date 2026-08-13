@@ -1,0 +1,42 @@
+.transport {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.recordButton {
+  display: inline-block;
+  background: transparent;
+  color: var(--color-error);
+  font-weight: 600;
+  font-size: 0.85em;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-error);
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.recordActive {
+  composes: recordButton;
+  background-color: var(--color-error);
+  color: white;
+}
+
+.time {
+  font-size: 0.8em;
+  color: var(--color-gray-400);
+  font-variant-numeric: tabular-nums;
+}
+
+.error {
+  color: var(--color-error);
+  font-size: 0.85em;
+}
