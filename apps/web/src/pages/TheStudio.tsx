@@ -43,6 +43,7 @@ function TheStudio() {
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRendering, setIsRendering] = useState(false);
+  const [isDownloadingMix, setIsDownloadingMix] = useState(false);
 
   useEffect(() => {
     if (address) {
@@ -183,6 +184,24 @@ function TheStudio() {
     }
   };
 
+  const handleDownloadMix = async () => {
+    setIsDownloadingMix(true);
+    setFormError(null);
+    try {
+      const file = await session.renderMixdownFile();
+      const url = URL.createObjectURL(file);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = file.name;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Could not render the mix.');
+    } finally {
+      setIsDownloadingMix(false);
+    }
+  };
+
   return (
     <div className={styles.page}>
       <div
@@ -200,6 +219,9 @@ function TheStudio() {
           onStop={session.stop}
           onRecordToggle={handleRecordClick}
           onAddFile={(file) => void session.addTrackFromFile(file)}
+          onDownloadMix={() => void handleDownloadMix()}
+          canDownloadMix={session.tracks.length > 0}
+          isDownloadingMix={isDownloadingMix}
           micError={session.micError?.message}
         />
 

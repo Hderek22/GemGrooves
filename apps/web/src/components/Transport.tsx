@@ -13,6 +13,9 @@ interface TransportProps {
   onStop: () => void;
   onRecordToggle: () => void;
   onAddFile: (file: File) => void;
+  onDownloadMix: () => void;
+  canDownloadMix: boolean;
+  isDownloadingMix: boolean;
   micError?: string;
 }
 
@@ -32,6 +35,9 @@ function Transport({
   onStop,
   onRecordToggle,
   onAddFile,
+  onDownloadMix,
+  canDownloadMix,
+  isDownloadingMix,
   micError,
 }: TransportProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -65,6 +71,14 @@ function Transport({
           + Add track
         </button>
         <input ref={fileInputRef} type="file" accept="audio/*" hidden onChange={handleFileChange} />
+        <button
+          type="button"
+          className={buttons.pillOutline}
+          onClick={onDownloadMix}
+          disabled={!canDownloadMix || isDownloadingMix}
+        >
+          {isDownloadingMix ? 'Rendering…' : '⇩ Download mix'}
+        </button>
         <span className={styles.time}>
           {formatTime(currentTime)} / {formatTime(durationSec)}
         </span>
