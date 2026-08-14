@@ -4,11 +4,14 @@ import {
   audioBufferToWav,
   decodeBlobToBuffer,
   getAudioContext,
+  playCountIn,
   PlaybackController,
   renderMixdown,
   type PlaybackTrack,
 } from '../lib/audioEngine';
 import { useMicRecorder } from './useMicRecorder';
+
+const COUNT_IN_BEATS = 4;
 
 export interface StudioTrack {
   id: string;
@@ -44,6 +47,9 @@ export function useMultiTrackSession() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [isDecoding, setIsDecoding] = useState(false);
+  const [bpm, setBpm] = useState(120);
+  const [countInEnabled, setCountInEnabled] = useState(true);
+  const [isCountingIn, setIsCountingIn] = useState(false);
 
   const controllerRef = useRef<PlaybackController | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -148,13 +154,21 @@ export function useMultiTrackSession() {
   }, [getController]);
 
   const startRecordingTrack = useCallback(async () => {
-    recordStartOffsetRef.current = currentTime;
+    const startOffset = currentTime;
+    recordStartOffsetRef.current = startOffset;
+
+    if (countInEnabled) {
+      setIsCountingIn(true);
+      await playCountIn(getAudioContext(), bpm, COUNT_IN_BEATS);
+      setIsCountingIn(false);
+    }
+
     if (tracks.length > 0) {
-      getController().play(toPlaybackTracks(tracks), currentTime);
+      getController().play(toPlaybackTracks(tracks), startOffset);
       setIsPlaying(true);
     }
     await recorder.startRecording();
-  }, [currentTime, tracks, recorder, getController]);
+  }, [currentTime, countInEnabled, bpm, tracks, recorder, getController]);
 
   const stopRecordingTrack = useCallback(async () => {
     const blob = await recorder.stopRecording();
@@ -195,6 +209,11 @@ export function useMultiTrackSession() {
     isRecording: recorder.isRecording,
     micPermission: recorder.permission,
     micError: recorder.error,
+    bpm,
+    setBpm,
+    countInEnabled,
+    setCountInEnabled,
+    isCountingIn,
     addTrackFromFile,
     removeTrack,
     updateTrack,

@@ -122,6 +122,26 @@ export class PlaybackController {
   }
 }
 
+/** Schedules `beats` metronome clicks at `bpm` (beat 1 accented) and resolves once they've finished. */
+export function playCountIn(ctx: AudioContext, bpm: number, beats: number): Promise<void> {
+  const interval = 60 / bpm;
+  const startTime = ctx.currentTime;
+
+  for (let i = 0; i < beats; i++) {
+    const t = startTime + i * interval;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.value = i === 0 ? 1000 : 800;
+    gain.gain.setValueAtTime(0.3, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.06);
+  }
+
+  return new Promise((resolve) => setTimeout(resolve, beats * interval * 1000));
+}
+
 export interface MixdownTrack {
   buffer: AudioBuffer;
   gain: number;

@@ -212,6 +212,7 @@ function TheStudio() {
         <Transport
           isPlaying={session.isPlaying}
           isRecording={session.isRecording}
+          isCountingIn={session.isCountingIn}
           currentTime={session.currentTime}
           durationSec={session.sessionDurationSec}
           onPlay={session.play}
@@ -222,6 +223,10 @@ function TheStudio() {
           onDownloadMix={() => void handleDownloadMix()}
           canDownloadMix={session.tracks.length > 0}
           isDownloadingMix={isDownloadingMix}
+          bpm={session.bpm}
+          onBpmChange={session.setBpm}
+          countInEnabled={session.countInEnabled}
+          onCountInEnabledChange={session.setCountInEnabled}
           micError={session.micError?.message}
         />
 
