@@ -1,0 +1,78 @@
+.scroll {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--color-gray-700);
+  border-radius: 0.5rem;
+  /* Force a persistently visible scrollbar (macOS/iOS default to an
+     overlay one that's invisible until actively dragged) — without this
+     there's no cue that the timeline extends past the visible width. */
+  scrollbar-width: auto;
+  scrollbar-color: var(--color-primary-900) var(--color-gray-900);
+}
+
+.scroll::-webkit-scrollbar {
+  height: 10px;
+}
+
+.scroll::-webkit-scrollbar-track {
+  background: var(--color-gray-900);
+}
+
+.scroll::-webkit-scrollbar-thumb {
+  background: var(--color-primary-900);
+  border-radius: 0.5rem;
+}
+
+.inner {
+  position: relative;
+  width: max-content;
+}
+
+.ruler {
+  display: flex;
+  align-items: stretch;
+  height: 1.5rem;
+  border-bottom: 1px solid var(--color-gray-700);
+}
+
+.rulerCorner {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  flex-shrink: 0;
+  background: var(--color-gray-900);
+  border-right: 1px solid var(--color-gray-700);
+}
+
+.rulerTrack {
+  position: relative;
+  background: var(--color-gray-900);
+}
+
+.tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-left: 1px solid var(--color-gray-700);
+  padding-left: 0.25rem;
+}
+
+.tick span {
+  font-size: 0.65em;
+  color: var(--color-gray-500);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-primary-900);
+  z-index: 1;
+  pointer-events: none;
+}

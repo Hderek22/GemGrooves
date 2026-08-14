@@ -4,8 +4,8 @@ import { isAddress, parseUnits, type Address } from 'viem';
 import { useAccount } from 'wagmi';
 
 import gemGrooveThumb from '../assets/GemGrooveThumb.jpg';
+import Timeline from '../components/Timeline';
 import Transport from '../components/Transport';
-import TrackRow from '../components/TrackRow';
 import { useIpfsUpload } from '../hooks/useIpfsUpload';
 import { useMintTrack } from '../hooks/useMintTrack';
 import { useMultiTrackSession } from '../hooks/useMultiTrackSession';
@@ -206,16 +206,14 @@ function TheStudio() {
         {session.tracks.length === 0 ? (
           <p className={styles.hint}>Record or drop audio files here to start building your GemGroove.</p>
         ) : (
-          <div className={styles.trackList}>
-            {session.tracks.map((track) => (
-              <TrackRow
-                key={track.id}
-                track={track}
-                onUpdate={(patch) => session.updateTrack(track.id, patch)}
-                onRemove={() => session.removeTrack(track.id)}
-              />
-            ))}
-          </div>
+          <Timeline
+            tracks={session.tracks}
+            currentTime={session.currentTime}
+            sessionDurationSec={session.sessionDurationSec}
+            isPlaying={session.isPlaying}
+            onUpdateTrack={session.updateTrack}
+            onRemoveTrack={session.removeTrack}
+          />
         )}
       </div>
 
