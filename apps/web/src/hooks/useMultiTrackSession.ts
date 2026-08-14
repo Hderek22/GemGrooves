@@ -165,6 +165,13 @@ export function useMultiTrackSession() {
     return addTrack(blob, `Take ${takeNumber}`, recordStartOffsetRef.current);
   }, [recorder, tracks.length, addTrack, getController]);
 
+  const resetSession = useCallback(() => {
+    getController().stop();
+    setTracks([]);
+    setIsPlaying(false);
+    setCurrentTime(0);
+  }, [getController]);
+
   const renderMixdownFile = useCallback(async () => {
     const audioBuffer = await renderMixdown(
       tracks.map((track) => ({
@@ -197,6 +204,7 @@ export function useMultiTrackSession() {
     startRecordingTrack,
     stopRecordingTrack,
     renderMixdownFile,
+    resetSession,
   };
 }
 

@@ -6,7 +6,6 @@ import { useAccount } from 'wagmi';
 import gemGrooveThumb from '../assets/GemGrooveThumb.jpg';
 import Transport from '../components/Transport';
 import TrackRow from '../components/TrackRow';
-import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { useIpfsUpload } from '../hooks/useIpfsUpload';
 import { useMintTrack } from '../hooks/useMintTrack';
 import { useMultiTrackSession } from '../hooks/useMultiTrackSession';
@@ -22,7 +21,6 @@ interface SplitRow {
 
 function TheStudio() {
   const { address, isConnected } = useAccount();
-  const player = useAudioPlayer();
   const session = useMultiTrackSession();
   const { uploadTrack, isUploading } = useIpfsUpload();
   const { options: payTokenOptions } = usePayTokenOptions();
@@ -44,6 +42,7 @@ function TheStudio() {
   const [payTokenIndex, setPayTokenIndex] = useState(0);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRendering, setIsRendering] = useState(false);
 
   useEffect(() => {
     if (address) {
@@ -66,7 +65,7 @@ function TheStudio() {
   const shareTotalValid = Math.round(shareTotal * 100) === 10000;
 
   function validate(): string | null {
-    if (!player.file) return 'Drop an audio file first.';
+    if (session.tracks.length === 0) return 'Record or add at least one track first.';
     if (!title.trim()) return 'Give your track a title.';
     if (!artist.trim()) return 'Add an artist name.';
     if (royaltyPercent < 0 || royaltyPercent > 50) return 'Royalty must be between 0% and 50%.';
@@ -95,8 +94,11 @@ function TheStudio() {
       const wallets = splits.map((row) => row.wallet as Address);
       const selectedToken = payTokenOptions[payTokenIndex];
 
+      setIsRendering(true);
+      const mixdownFile = await session.renderMixdownFile().finally(() => setIsRendering(false));
+
       const tokenURI = await uploadTrack({
-        audioFile: player.file as File,
+        audioFile: mixdownFile,
         title,
         artist,
         royaltyBPS,
@@ -119,7 +121,7 @@ function TheStudio() {
   };
 
   const resetForm = () => {
-    player.clear();
+    session.resetSession();
     setTitle('');
     setArtist('');
     setRoyaltyPercent(10);
@@ -310,13 +312,15 @@ function TheStudio() {
         {mintError && <p className={styles.error}>{mintError.message}</p>}
 
         <button type="submit" className={buttons.pill} disabled={busy}>
-          {isUploading
-            ? 'Uploading to IPFS…'
-            : isPending
-              ? 'Confirm in wallet…'
-              : isConfirming
-                ? 'Minting…'
-                : 'Mint GemGroove'}
+          {isRendering
+            ? 'Rendering mix…'
+            : isUploading
+              ? 'Uploading to IPFS…'
+              : isPending
+                ? 'Confirm in wallet…'
+                : isConfirming
+                  ? 'Minting…'
+                  : 'Mint GemGroove'}
         </button>
       </form>
     </div>
