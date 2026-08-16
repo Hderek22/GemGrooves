@@ -17,7 +17,7 @@ function Home() {
         <Link to="/TheRecordShop" className={buttons.pill}>
           Browse The Record Shop
         </Link>
-        <Link to="/TheLounge" className={buttons.pillOutline}>
+        <Link to="/TheLounge" className={buttons.pill}>
           Listen in The Lounge
         </Link>
       </nav>

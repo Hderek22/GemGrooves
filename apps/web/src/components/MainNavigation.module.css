@@ -4,20 +4,21 @@
   width: 100%;
   margin: 0 auto;
   padding: 1.5rem 2rem;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: center;
   gap: 1rem;
 }
 
 .hamburger {
   display: none;
+  grid-column: 1;
 }
 
 .nav {
-  flex: 1;
   display: flex;
   justify-content: center;
+  grid-column: 2;
 }
 
 .list {
@@ -58,6 +59,8 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 0.35rem;
+  grid-column: 3;
+  justify-self: end;
 }
 
 .walletArea button:not([class]) {
@@ -72,6 +75,7 @@
 
 @media (max-width: 1099px) {
   .header {
+    display: flex;
     justify-content: space-between;
     flex-wrap: wrap;
   }
