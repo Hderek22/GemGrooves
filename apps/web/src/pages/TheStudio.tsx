@@ -263,110 +263,113 @@ function TheStudio() {
         )}
       </div>
 
-      <form className={styles.form} onSubmit={handleSubmit}>
-        <div className={styles.field}>
-          <label htmlFor="title">Title</label>
-          <input id="title" value={title} onChange={(e) => setTitle(e.target.value)} />
-        </div>
-
-        <div className={styles.field}>
-          <label htmlFor="artist">Artist name</label>
-          <input id="artist" value={artist} onChange={(e) => setArtist(e.target.value)} />
-        </div>
-
-        <div className={styles.row}>
+      <div className={styles.mintZone}>
+        <h2 className={styles.mintHeading}>Mint your GemGroove</h2>
+        <form className={styles.form} onSubmit={handleSubmit}>
           <div className={styles.field}>
-            <label htmlFor="royalty">Royalty (%)</label>
-            <input
-              id="royalty"
-              type="number"
-              min={0}
-              max={50}
-              step={0.5}
-              value={royaltyPercent}
-              onChange={(e) => setRoyaltyPercent(Number(e.target.value))}
-            />
+            <label htmlFor="title">Title</label>
+            <input id="title" value={title} onChange={(e) => setTitle(e.target.value)} />
           </div>
-          <div className={styles.field}>
-            <label htmlFor="price">Price</label>
-            <input
-              id="price"
-              type="number"
-              min={0}
-              step="any"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-            />
-          </div>
-          <div className={styles.field}>
-            <label htmlFor="currency">Currency</label>
-            <select
-              id="currency"
-              value={payTokenIndex}
-              onChange={(e) => setPayTokenIndex(Number(e.target.value))}
-            >
-              {payTokenOptions.map((option, i) => (
-                <option key={option.address} value={i}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
 
-        <div className={styles.field}>
-          <div className={styles.splitsHeading}>
-            <label>Co-creators</label>
-            <span className={shareTotalValid ? styles.shareTotal : styles.shareTotalInvalid}>
-              {shareTotal}% of 100%
-            </span>
+          <div className={styles.field}>
+            <label htmlFor="artist">Artist name</label>
+            <input id="artist" value={artist} onChange={(e) => setArtist(e.target.value)} />
           </div>
-          {splits.map((row, i) => (
-            <div className={styles.splitRow} key={i}>
+
+          <div className={styles.row}>
+            <div className={styles.field}>
+              <label htmlFor="royalty">Royalty (%)</label>
               <input
-                type="text"
-                placeholder="0x…"
-                value={row.wallet}
-                onChange={(e) => updateSplit(i, { wallet: e.target.value })}
-              />
-              <input
+                id="royalty"
                 type="number"
                 min={0}
-                max={100}
+                max={50}
                 step={0.5}
-                value={row.sharePercent}
-                onChange={(e) => updateSplit(i, { sharePercent: Number(e.target.value) })}
+                value={royaltyPercent}
+                onChange={(e) => setRoyaltyPercent(Number(e.target.value))}
               />
-              <button
-                type="button"
-                className={buttons.pillOutline}
-                onClick={() => removeSplit(i)}
-                disabled={splits.length === 1}
-              >
-                &minus;
-              </button>
             </div>
-          ))}
-          <button type="button" className={buttons.pillOutline} onClick={addSplit}>
-            + Add co-creator
+            <div className={styles.field}>
+              <label htmlFor="price">Price</label>
+              <input
+                id="price"
+                type="number"
+                min={0}
+                step="any"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+              />
+            </div>
+            <div className={styles.field}>
+              <label htmlFor="currency">Currency</label>
+              <select
+                id="currency"
+                value={payTokenIndex}
+                onChange={(e) => setPayTokenIndex(Number(e.target.value))}
+              >
+                {payTokenOptions.map((option, i) => (
+                  <option key={option.address} value={i}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className={styles.field}>
+            <div className={styles.splitsHeading}>
+              <label>Co-creators</label>
+              <span className={shareTotalValid ? styles.shareTotal : styles.shareTotalInvalid}>
+                {shareTotal}% of 100%
+              </span>
+            </div>
+            {splits.map((row, i) => (
+              <div className={styles.splitRow} key={i}>
+                <input
+                  type="text"
+                  placeholder="0x…"
+                  value={row.wallet}
+                  onChange={(e) => updateSplit(i, { wallet: e.target.value })}
+                />
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.5}
+                  value={row.sharePercent}
+                  onChange={(e) => updateSplit(i, { sharePercent: Number(e.target.value) })}
+                />
+                <button
+                  type="button"
+                  className={buttons.pillOutline}
+                  onClick={() => removeSplit(i)}
+                  disabled={splits.length === 1}
+                >
+                  &minus;
+                </button>
+              </div>
+            ))}
+            <button type="button" className={buttons.pillOutline} onClick={addSplit}>
+              + Add co-creator
+            </button>
+          </div>
+
+          {formError && <p className={styles.error}>{formError}</p>}
+          {mintError && <p className={styles.error}>{mintError.message}</p>}
+
+          <button type="submit" className={buttons.pill} disabled={busy}>
+            {isRendering
+              ? 'Rendering mix…'
+              : isUploading
+                ? 'Uploading to IPFS…'
+                : isPending
+                  ? 'Confirm in wallet…'
+                  : isConfirming
+                    ? 'Minting…'
+                    : 'Mint GemGroove'}
           </button>
-        </div>
-
-        {formError && <p className={styles.error}>{formError}</p>}
-        {mintError && <p className={styles.error}>{mintError.message}</p>}
-
-        <button type="submit" className={buttons.pill} disabled={busy}>
-          {isRendering
-            ? 'Rendering mix…'
-            : isUploading
-              ? 'Uploading to IPFS…'
-              : isPending
-                ? 'Confirm in wallet…'
-                : isConfirming
-                  ? 'Minting…'
-                  : 'Mint GemGroove'}
-        </button>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }
