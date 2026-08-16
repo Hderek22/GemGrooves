@@ -4,12 +4,14 @@ import { isAddress, parseUnits, type Address } from 'viem';
 import { useAccount } from 'wagmi';
 
 import gemGrooveThumb from '../assets/GemGrooveThumb.jpg';
+import SessionPicker from '../components/SessionPicker';
 import Timeline from '../components/Timeline';
 import Transport from '../components/Transport';
 import { useIpfsUpload } from '../hooks/useIpfsUpload';
 import { useMintTrack } from '../hooks/useMintTrack';
 import { useMultiTrackSession } from '../hooks/useMultiTrackSession';
 import { usePayTokenOptions } from '../hooks/usePayTokenOptions';
+import { useSessionPersistence } from '../hooks/useSessionPersistence';
 import buttons from '../styles/buttons.module.css';
 import layout from '../styles/layout.module.css';
 import styles from './TheStudio.module.css';
@@ -22,6 +24,7 @@ interface SplitRow {
 function TheStudio() {
   const { address, isConnected } = useAccount();
   const session = useMultiTrackSession();
+  const persistence = useSessionPersistence(session, address);
   const { uploadTrack, isUploading } = useIpfsUpload();
   const { options: payTokenOptions } = usePayTokenOptions();
   const {
@@ -52,6 +55,10 @@ function TheStudio() {
       );
     }
   }, [address]);
+
+  useEffect(() => {
+    void persistence.refreshSavedSessions();
+  }, [persistence.refreshSavedSessions]);
 
   const updateSplit = (index: number, patch: Partial<SplitRow>) => {
     setSplits((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
@@ -209,6 +216,18 @@ function TheStudio() {
         onDrop={handleSessionDrop}
         onDragOver={(event) => event.preventDefault()}
       >
+        <SessionPicker
+          sessionName={session.sessionName}
+          onSessionNameChange={session.setSessionName}
+          savedSessions={persistence.savedSessions}
+          onSave={() => void persistence.saveSession()}
+          onLoad={(id) => void persistence.loadSession(id)}
+          onNew={persistence.newSession}
+          isSaving={persistence.isSaving}
+          isLoading={persistence.isLoading}
+          error={persistence.error}
+        />
+
         <Transport
           isPlaying={session.isPlaying}
           isRecording={session.isRecording}

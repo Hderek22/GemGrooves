@@ -23,9 +23,14 @@ export interface StudioTrack {
   muted: boolean;
   solo: boolean;
   offsetSec: number;
+  /** Set once this track has been uploaded to Supabase Storage; absence means "not yet saved." */
+  remoteId?: string;
+  storagePath?: string;
 }
 
-export type TrackPatch = Partial<Pick<StudioTrack, 'name' | 'gain' | 'muted' | 'solo' | 'offsetSec'>>;
+export type TrackPatch = Partial<
+  Pick<StudioTrack, 'name' | 'gain' | 'muted' | 'solo' | 'offsetSec' | 'remoteId' | 'storagePath'>
+>;
 
 function makeTrackId() {
   return `track-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -50,6 +55,8 @@ export function useMultiTrackSession() {
   const [bpm, setBpm] = useState(120);
   const [countInEnabled, setCountInEnabled] = useState(true);
   const [isCountingIn, setIsCountingIn] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionName, setSessionName] = useState('Untitled Session');
 
   const controllerRef = useRef<PlaybackController | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -125,6 +132,13 @@ export function useMultiTrackSession() {
     (file: File) => addTrack(file, file.name, 0),
     [addTrack]
   );
+
+  const loadTracks = useCallback((next: StudioTrack[]) => {
+    getController().stop();
+    setTracks(next);
+    setIsPlaying(false);
+    setCurrentTime(0);
+  }, [getController]);
 
   const removeTrack = useCallback((id: string) => {
     setTracks((prev) => prev.filter((track) => track.id !== id));
@@ -214,7 +228,12 @@ export function useMultiTrackSession() {
     countInEnabled,
     setCountInEnabled,
     isCountingIn,
+    sessionId,
+    setSessionId,
+    sessionName,
+    setSessionName,
     addTrackFromFile,
+    loadTracks,
     removeTrack,
     updateTrack,
     play,

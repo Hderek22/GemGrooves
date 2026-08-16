@@ -1,0 +1,35 @@
+.picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.name {
+  background: var(--color-gray-900);
+  border: 1px solid var(--color-gray-700);
+  border-radius: 0.5rem;
+  color: inherit;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  font-size: 0.85em;
+  min-width: 10rem;
+  flex: 1;
+}
+
+.select {
+  background: var(--color-gray-900);
+  border: 1px solid var(--color-gray-700);
+  border-radius: 0.5rem;
+  color: inherit;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  font-size: 0.8em;
+}
+
+.error {
+  width: 100%;
+  color: var(--color-error);
+  font-size: 0.85em;
+  text-align: left;
+}
