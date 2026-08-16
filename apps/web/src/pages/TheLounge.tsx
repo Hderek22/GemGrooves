@@ -17,23 +17,24 @@ function TheLounge() {
 
   return (
     <div className={layout.centered}>
+      <img src={gemGrooveThumb} alt="GemGrooves" className={styles.logo} />
       <div
-        className={styles.dropzone}
+        className={styles.lounge}
         onDrop={handleDrop}
         onDragOver={(event) => event.preventDefault()}
-      />
-      <AudioPlayer
-        file={player.file}
-        objectUrl={player.objectUrl}
-        isPlaying={player.isPlaying}
-        audioRef={player.audioRef}
-        onPlay={player.play}
-        onPause={player.pause}
-        onStop={player.stop}
-        onClear={player.clear}
-        emptyLabel="Drag and drop your jam here to hear its awesomeness!"
-      />
-      <img src={gemGrooveThumb} alt="GemGrooves" className={styles.logo} />
+      >
+        <AudioPlayer
+          file={player.file}
+          objectUrl={player.objectUrl}
+          isPlaying={player.isPlaying}
+          audioRef={player.audioRef}
+          onPlay={player.play}
+          onPause={player.pause}
+          onStop={player.stop}
+          onClear={player.clear}
+          emptyLabel="Drag and drop your jam here to hear its awesomeness!"
+        />
+      </div>
     </div>
   );
 }
