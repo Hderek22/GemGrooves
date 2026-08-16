@@ -8,11 +8,8 @@ import styles from './Home.module.css';
 function Home() {
   return (
     <div className={layout.centered}>
+      <h1 className={styles.srOnly}>GemGrooves</h1>
       <img src={gemGrooveThumb} alt="GemGrooves" className={styles.logo} />
-      <h1 className={styles.title}>GemGrooves</h1>
-      <p className={styles.tagline}>
-        Put the control back into the hands of the artist — where it always belonged.
-      </p>
       <nav className={styles.cta} aria-label="Explore GemGrooves">
         <Link to="/TheStudio" className={buttons.pill}>
           Mint in The Studio
