@@ -1,5 +1,5 @@
 import react from '@vitejs/plugin-react';
-import { defineConfig, type Plugin } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 
 import { pin } from './api/_lib/pinata';
 import type { PinRequest } from './src/lib/pin-types';
@@ -34,6 +34,16 @@ function pinDevMiddleware(): Plugin {
   };
 }
 
-export default defineConfig({
-  plugins: [react(), pinDevMiddleware()],
+export default defineConfig(({ mode }) => {
+  // Vite only auto-loads .env vars into import.meta.env for the client
+  // bundle (VITE_-prefixed only). pinDevMiddleware runs server-side and
+  // needs the un-prefixed PINATA_JWT via plain process.env, which Vite
+  // does not populate automatically for a plain-object config — so we
+  // load and merge it in ourselves, matching what Vercel's platform does
+  // in production.
+  Object.assign(process.env, loadEnv(mode, process.cwd(), ''));
+
+  return {
+    plugins: [react(), pinDevMiddleware()],
+  };
 });
