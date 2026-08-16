@@ -144,7 +144,7 @@ function TheStudio() {
     return (
       <div className={layout.centered}>
         <img src={gemGrooveThumb} alt="GemGrooves" className={styles.logo} />
-        <p className={styles.hint}>Connect your wallet (top right) to start minting a GemGroove.</p>
+        <p className={styles.hint}>Connect your wallet above to start minting a GemGroove.</p>
       </div>
     );
   }
