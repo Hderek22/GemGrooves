@@ -29,8 +29,14 @@ create table if not exists studio_tracks (
   muted boolean not null default false,
   solo boolean not null default false,
   offset_sec double precision not null default 0,
+  looped boolean not null default false,
   created_at timestamptz not null default now()
 );
+
+-- Re-running this file against a database created before the loop-pedal
+-- feature needs this to backfill the new column (create table above only
+-- applies to a fresh database).
+alter table studio_tracks add column if not exists looped boolean not null default false;
 
 create index if not exists studio_sessions_owner_wallet_idx on studio_sessions (owner_wallet);
 create index if not exists studio_tracks_session_id_idx on studio_tracks (session_id);

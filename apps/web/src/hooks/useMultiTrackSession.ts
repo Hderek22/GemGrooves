@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   audioBufferToWav,
@@ -23,13 +23,18 @@ export interface StudioTrack {
   muted: boolean;
   solo: boolean;
   offsetSec: number;
+  /** Loop-pedal mode: keep repeating this track while other tracks are dubbed on top. */
+  looped: boolean;
   /** Set once this track has been uploaded to Supabase Storage; absence means "not yet saved." */
   remoteId?: string;
   storagePath?: string;
 }
 
 export type TrackPatch = Partial<
-  Pick<StudioTrack, 'name' | 'gain' | 'muted' | 'solo' | 'offsetSec' | 'remoteId' | 'storagePath'>
+  Pick<
+    StudioTrack,
+    'name' | 'gain' | 'muted' | 'solo' | 'offsetSec' | 'looped' | 'remoteId' | 'storagePath'
+  >
 >;
 
 function makeTrackId() {
@@ -44,6 +49,7 @@ function toPlaybackTracks(tracks: StudioTrack[]): PlaybackTrack[] {
     muted: track.muted,
     solo: track.solo,
     offsetSec: track.offsetSec,
+    looped: track.looped,
   }));
 }
 
@@ -74,6 +80,7 @@ export function useMultiTrackSession() {
     (max, track) => Math.max(max, track.offsetSec + track.durationSec),
     0
   );
+  const hasLoopedTrack = useMemo(() => tracks.some((track) => track.looped), [tracks]);
 
   useEffect(() => {
     if (!isPlaying) {
@@ -83,7 +90,7 @@ export function useMultiTrackSession() {
     const tick = () => {
       const controller = getController();
       const position = controller.getPositionSec();
-      if (position >= sessionDurationSec && sessionDurationSec > 0) {
+      if (!hasLoopedTrack && position >= sessionDurationSec && sessionDurationSec > 0) {
         controller.stop();
         setIsPlaying(false);
         setCurrentTime(0);
@@ -96,7 +103,7 @@ export function useMultiTrackSession() {
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [isPlaying, sessionDurationSec, getController]);
+  }, [isPlaying, sessionDurationSec, hasLoopedTrack, getController]);
 
   useEffect(() => {
     if (isPlaying) getController().updateLiveMix(toPlaybackTracks(tracks));
@@ -118,6 +125,7 @@ export function useMultiTrackSession() {
           muted: false,
           solo: false,
           offsetSec,
+          looped: false,
         };
         setTracks((prev) => [...prev, track]);
         return track;
@@ -207,6 +215,7 @@ export function useMultiTrackSession() {
         gain: track.gain,
         muted: track.muted,
         offsetSec: track.offsetSec,
+        looped: track.looped,
       })),
       sessionDurationSec
     );

@@ -70,6 +70,14 @@ function TrackRow({
           >
             S
           </button>
+          <button
+            type="button"
+            className={track.looped ? styles.toggleActive : styles.toggle}
+            onClick={() => onUpdate({ looped: !track.looped })}
+            title="Loop pedal: repeat this track while you dub over it"
+          >
+            🔁
+          </button>
           <input
             type="range"
             min={0}
@@ -87,7 +95,12 @@ function TrackRow({
 
       <div className={styles.lane} style={{ width: timelineWidthSec * pxPerSec }}>
         <div
-          className={draggable ? styles.clip : styles.clipLocked}
+          className={[
+            draggable ? styles.clip : styles.clipLocked,
+            track.looped ? styles.clipLooped : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
           style={{ left: track.offsetSec * pxPerSec, width: track.durationSec * pxPerSec }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}

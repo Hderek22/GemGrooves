@@ -115,6 +115,7 @@ export function useSessionPersistence(
               muted: track.muted,
               solo: track.solo,
               offset_sec: track.offsetSec,
+              looped: track.looped,
             })
             .select('id')
             .single();
@@ -134,6 +135,7 @@ export function useSessionPersistence(
               muted: track.muted,
               solo: track.solo,
               offset_sec: track.offsetSec,
+              looped: track.looped,
             })
             .eq('id', track.remoteId);
           if (trackUpdateError) throw new Error(trackUpdateError.message);
@@ -194,6 +196,7 @@ export function useSessionPersistence(
             muted: row.muted,
             solo: row.solo,
             offsetSec: row.offset_sec,
+            looped: row.looped ?? false,
             remoteId: row.id,
             storagePath: row.storage_path,
           });

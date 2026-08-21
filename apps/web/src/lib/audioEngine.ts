@@ -22,6 +22,8 @@ export interface PlaybackTrack {
   muted: boolean;
   solo: boolean;
   offsetSec: number;
+  /** Loop-pedal mode: keep repeating this track's buffer instead of playing it once. */
+  looped: boolean;
 }
 
 interface ActiveNode {
@@ -68,7 +70,7 @@ export class PlaybackController {
 
     for (const track of tracks) {
       const intoBuffer = positionSec - track.offsetSec;
-      if (intoBuffer >= track.buffer.duration) continue;
+      if (!track.looped && intoBuffer >= track.buffer.duration) continue;
 
       const source = this.ctx.createBufferSource();
       source.buffer = track.buffer;
@@ -76,7 +78,11 @@ export class PlaybackController {
       gainNode.gain.value = isAudible(track, anySolo) ? track.gain : 0;
       source.connect(gainNode).connect(this.ctx.destination);
 
-      if (intoBuffer >= 0) {
+      if (track.looped) {
+        source.loop = true;
+        const loopOffset = intoBuffer >= 0 ? intoBuffer % track.buffer.duration : 0;
+        source.start(ctxStart - Math.min(0, intoBuffer), loopOffset);
+      } else if (intoBuffer >= 0) {
         source.start(ctxStart, intoBuffer);
       } else {
         source.start(ctxStart - intoBuffer);
@@ -147,6 +153,7 @@ export interface MixdownTrack {
   gain: number;
   muted: boolean;
   offsetSec: number;
+  looped: boolean;
 }
 
 export async function renderMixdown(
@@ -162,6 +169,7 @@ export async function renderMixdown(
     if (track.muted) continue;
     const source = offlineCtx.createBufferSource();
     source.buffer = track.buffer;
+    if (track.looped) source.loop = true;
     const gainNode = offlineCtx.createGain();
     gainNode.gain.value = track.gain;
     source.connect(gainNode).connect(offlineCtx.destination);
