@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(git push*)",
+            "command": "cat <<'EOF'\n{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"You just ran a successful git push in the GemGrooves repo. Update .claude/skills/gemgrooves/SKILL.md to reflect what this push shipped, then commit and push that update too if it is not already part of this push.\"}}\nEOF",
+            "statusMessage": "Reminding to update GemGrooves skill"
+          }
+        ]
+      }
+    ]
+  }
+}
