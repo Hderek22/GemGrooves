@@ -103,11 +103,43 @@ auto-stop-at-session-end behavior while any track is looped.
 
 `apps/web/supabase/schema.sql` defines `studio_sessions`/`studio_tracks`
 with intentionally open RLS policies (draft session data, not funds — see
-the comment at the top of that file for the reasoning, revisit once
-collaborator invites are added). The file is meant to be re-run against a
-live database after schema changes, so keep new columns idempotent
-(`alter table ... add column if not exists ...`) rather than only adding
-them to the `create table` statement.
+the comment at the top of that file for the reasoning; RLS tightening is
+the next step of the auth work below, once a collaborator-membership table
+exists to key policies off). The file is meant to be re-run against a live
+database after schema changes, so keep new columns idempotent (`alter
+table ... add column if not exists ...`) rather than only adding them to
+the `create table` statement — and likewise every `create policy` is
+preceded by `drop policy if exists`, since Postgres has no `create policy
+if not exists`.
+
+## Auth: Sign-In with Ethereum (Studio Phase 3, part 1)
+
+Wallet identity was a plain unverified `owner_wallet` text column until
+this landed — no RLS policy can safely key off it without some proof the
+client controls that wallet. `useSiweAuth.ts` drives the flow from a "Sign
+in to collaborate" button in `TheStudio.tsx`: fetch a nonce, sign a
+message, exchange the signature for a Supabase-compatible JWT.
+
+- `api/_lib/siwe.ts` — nonce issuance (stored in `siwe_nonces`, single-use,
+  5min TTL) + signature verification (`viem`'s `verifyMessage`) + JWT
+  minting (`jose`, HS256, `sub` = lowercased wallet, `role: authenticated`)
+- `api/siwe-nonce.ts` / `api/siwe-verify.ts` — thin Vercel handlers over
+  the above
+- `api/_lib/supabaseAdmin.ts` — service-role client for the nonce table
+  only; **must** pass the `ws` package as the realtime `transport` option,
+  or `createClient` throws ("native WebSocket not found") on any Node
+  version below 22, even though this code never touches Realtime
+- `src/lib/supabase.ts` — the exported `supabase` client is a mutable
+  `let`; `setSupabaseAuthToken(token)` swaps in an authenticated client,
+  and existing `import { supabase }` call sites see the change live (ES
+  module bindings), no plumbing needed elsewhere
+- `vite.config.ts`'s dev middleware (originally `/api/pin`-only) is now a
+  generic `apiDevMiddleware()` helper — reuse it for any new `/api/*`
+  Vercel function so it also works under plain `npm run dev`
+- The JWT is **not yet consumed by RLS** — `studio_sessions`/`studio_tracks`
+  policies are still fully open (`using (true)`). Tightening them to key
+  off `auth.jwt()->>'sub'` plus a `studio_session_collaborators` table is
+  the next phase.
 
 ## Conventions
 
