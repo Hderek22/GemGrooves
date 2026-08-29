@@ -12,6 +12,7 @@ import { useMintTrack } from '../hooks/useMintTrack';
 import { useMultiTrackSession } from '../hooks/useMultiTrackSession';
 import { usePayTokenOptions } from '../hooks/usePayTokenOptions';
 import { useSessionPersistence } from '../hooks/useSessionPersistence';
+import { useSiweAuth } from '../hooks/useSiweAuth';
 import buttons from '../styles/buttons.module.css';
 import layout from '../styles/layout.module.css';
 import styles from './TheStudio.module.css';
@@ -25,6 +26,7 @@ function TheStudio() {
   const { address, isConnected } = useAccount();
   const session = useMultiTrackSession();
   const persistence = useSessionPersistence(session, address);
+  const siwe = useSiweAuth();
   const { uploadTrack, isUploading } = useIpfsUpload();
   const { options: payTokenOptions } = usePayTokenOptions();
   const {
@@ -216,6 +218,22 @@ function TheStudio() {
         onDrop={handleSessionDrop}
         onDragOver={(event) => event.preventDefault()}
       >
+        <div className={styles.row}>
+          {siwe.isSignedIn ? (
+            <span className={styles.hint}>Signed in for collaboration</span>
+          ) : (
+            <button
+              type="button"
+              className={buttons.pillOutline}
+              onClick={() => void siwe.signIn()}
+              disabled={siwe.isSigningIn}
+            >
+              {siwe.isSigningIn ? 'Sign in…' : 'Sign in to collaborate'}
+            </button>
+          )}
+          {siwe.error && <span className={styles.error}>{siwe.error}</span>}
+        </div>
+
         <SessionPicker
           sessionName={session.sessionName}
           onSessionNameChange={session.setSessionName}

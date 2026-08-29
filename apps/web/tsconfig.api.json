@@ -11,5 +11,5 @@
     "resolveJsonModule": true,
     "esModuleInterop": true
   },
-  "include": ["api", "src/lib/pin-types.ts"]
+  "include": ["api", "src/lib/pin-types.ts", "src/lib/siwe-types.ts"]
 }
