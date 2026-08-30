@@ -9,6 +9,9 @@ interface SessionPickerProps {
   onSave: () => void;
   onLoad: (id: string) => void;
   onNew: () => void;
+  onShare: () => void;
+  isShared: boolean;
+  shareStatus: string | null;
   isSaving: boolean;
   isLoading: boolean;
   error: string | null;
@@ -21,6 +24,9 @@ function SessionPicker({
   onSave,
   onLoad,
   onNew,
+  onShare,
+  isShared,
+  shareStatus,
   isSaving,
   isLoading,
   error,
@@ -41,6 +47,10 @@ function SessionPicker({
       <button type="button" className={buttons.pillOutline} onClick={onNew} disabled={busy}>
         New session
       </button>
+      <button type="button" className={buttons.pillOutline} onClick={onShare} disabled={busy}>
+        {isShared ? 'Copy invite link' : 'Share session'}
+      </button>
+      {shareStatus && <span className={styles.status}>{shareStatus}</span>}
       {savedSessions.length > 0 && (
         <select
           className={styles.select}

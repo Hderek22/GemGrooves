@@ -19,13 +19,22 @@ you're ready.
 You'll need to sign in again if you disconnect your wallet or switch to a
 different one — a sign-in only ever applies to the wallet that signed it.
 
-### Sharing a session — coming soon 🚧
+### Sharing a session
 
-Inviting another wallet to co-edit your session (adding tracks, mixing,
-and recording together in real time) is actively being built and isn't
-available yet. This guide will be updated with the exact steps — sharing
-a session link and accepting an invite — as soon as that ships.
+Once you've saved a session, click **"Share session"** in the session bar.
+This marks the session joinable and copies an invite link to your
+clipboard — send it to whoever you're collaborating with.
 
-In the meantime, the Boss RC-pedal-style **loop** button on any track lets
-you build up a layered performance solo: loop a track indefinitely while
-you record new ones on top, the same way a looper pedal works on stage.
+Whoever opens that link just needs to connect their wallet and sign in
+(same "Sign in to collaborate" step above); they're added to the session
+automatically and can start adding and editing tracks right alongside you.
+Changes sync when either of you saves — it's not a live, edit-as-you-type
+view, so save periodically to share progress and pull in a collaborator's
+latest work.
+
+Anyone with the link can join once it's shared — there's no separate
+approval step, so only share a link with people you actually want on the
+session.
+
+The loop button on any track still works solo too: loop a track
+indefinitely, Boss RC-pedal style, while you record new ones on top.

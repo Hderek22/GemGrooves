@@ -40,7 +40,8 @@ Keep this file current — see "Keeping this skill current" at the bottom.
   `playCountIn`
 - `hooks/useMicRecorder.ts` — `MediaRecorder`/`getUserMedia` wrapper
 - `hooks/useSessionPersistence.ts` — Supabase-backed save/load of sessions
-  and tracks (see `apps/web/supabase/schema.sql`)
+  and tracks (see `apps/web/supabase/schema.sql`), plus realtime
+  collaborator sync and session sharing/joining (see Collaboration below)
 - Components: `Transport`, `Timeline`, `TrackRow` (per-track
   mute/solo/loop/gain/drag), `SessionPicker`, `Waveform`
 
@@ -101,11 +102,9 @@ auto-stop-at-session-end behavior while any track is looped.
 
 ## Persistence (Supabase)
 
-`apps/web/supabase/schema.sql` defines `studio_sessions`/`studio_tracks`
-with intentionally open RLS policies (draft session data, not funds — see
-the comment at the top of that file for the reasoning; RLS tightening is
-the next step of the auth work below, once a collaborator-membership table
-exists to key policies off). The file is meant to be re-run against a live
+`apps/web/supabase/schema.sql` defines `studio_sessions`/`studio_tracks`/
+`studio_session_collaborators`, RLS-scoped per session (see Collaboration
+below for the exact model). The file is meant to be re-run against a live
 database after schema changes, so keep new columns idempotent (`alter
 table ... add column if not exists ...`) rather than only adding them to
 the `create table` statement — and likewise every `create policy` is
@@ -114,11 +113,12 @@ if not exists`.
 
 ## Auth: Sign-In with Ethereum (Studio Phase 3, part 1)
 
-Wallet identity was a plain unverified `owner_wallet` text column until
-this landed — no RLS policy can safely key off it without some proof the
-client controls that wallet. `useSiweAuth.ts` drives the flow from a "Sign
-in to collaborate" button in `TheStudio.tsx`: fetch a nonce, sign a
-message, exchange the signature for a Supabase-compatible JWT.
+Wallet identity is a plain `owner_wallet` text column — no RLS policy can
+safely key off it without some proof the client controls that wallet.
+`useSiweAuth.ts` drives the flow from a "Sign in to collaborate" button in
+`TheStudio.tsx`: fetch a nonce, sign a message, exchange the signature for
+a Supabase-compatible JWT. Session save/load now **requires** this — RLS
+keys off `auth.jwt()->>'sub'`, which is only populated once signed in.
 
 - `api/_lib/siwe.ts` — nonce issuance (stored in `siwe_nonces`, single-use,
   5min TTL) + signature verification (`viem`'s `verifyMessage`) + JWT
@@ -130,16 +130,59 @@ message, exchange the signature for a Supabase-compatible JWT.
   or `createClient` throws ("native WebSocket not found") on any Node
   version below 22, even though this code never touches Realtime
 - `src/lib/supabase.ts` — the exported `supabase` client is a mutable
-  `let`; `setSupabaseAuthToken(token)` swaps in an authenticated client,
-  and existing `import { supabase }` call sites see the change live (ES
-  module bindings), no plumbing needed elsewhere
+  `let`; `setSupabaseAuthToken(token)` swaps in an authenticated client
+  **and** calls `client.realtime.setAuth(token)` — the `global.headers`
+  override only covers REST/Storage, Realtime's websocket needs its auth
+  set separately or RLS-scoped subscriptions silently receive nothing
 - `vite.config.ts`'s dev middleware (originally `/api/pin`-only) is now a
   generic `apiDevMiddleware()` helper — reuse it for any new `/api/*`
   Vercel function so it also works under plain `npm run dev`
-- The JWT is **not yet consumed by RLS** — `studio_sessions`/`studio_tracks`
-  policies are still fully open (`using (true)`). Tightening them to key
-  off `auth.jwt()->>'sub'` plus a `studio_session_collaborators` table is
-  the next phase.
+- Any new file imported (even transitively) by `vite.config.ts` or an
+  `api/_lib/*.ts` must also be added to `tsconfig.node.json`'s `include`
+  list — `npm run typecheck` won't catch a missing entry, only `npm run
+  build` (`tsc -b`) does, since project-references mode is stricter about
+  explicit file lists than plain `tsc --noEmit`
+
+## Collaboration (Studio Phase 3, part 2)
+
+A session's owner (`owner_wallet`) or an accepted collaborator
+(`studio_session_collaborators`) can read/write it; anyone else can, at
+most, see that a link-shared session (`studio_sessions.is_shared`) exists —
+enough to decide whether to join.
+
+- **Sharing**: `SessionPicker`'s "Share session" button calls
+  `useSessionPersistence`'s `shareSession()`, which sets `is_shared = true`
+  and returns a `/TheStudio/:sessionId` link (route added in `App.tsx`).
+- **Joining**: opening that link (`TheStudio.tsx` reads the `:sessionId`
+  route param via `useParams`) calls `joinSession(id)` once signed in —
+  self-service insert into `studio_session_collaborators` (RLS only allows
+  a wallet to add *itself*, and only while `is_shared` is true), then loads
+  the session.
+- **Realtime sync is save-triggered, not live-per-keystroke** (a
+  deliberate choice — The Studio has no autosave, to avoid the
+  debounce/race-condition bugs autosave would reintroduce). A
+  `postgres_changes` subscription on `studio_tracks`/`studio_sessions`,
+  scoped to the current `sessionId`, fires whenever *any* member saves;
+  `useMultiTrackSession`'s `applyRemoteTrackSync()` merges the change in
+  without the full-replace `loadTracks()` does (which would also wipe out
+  a collaborator's own not-yet-saved local edits).
+- **RLS helper functions** (`studio_session_is_member`,
+  `studio_session_is_member_of`, `studio_session_is_shared`,
+  `storage_path_session_id` in `schema.sql`) exist because a policy
+  referencing another RLS-protected table would itself get filtered by
+  that table's RLS for the querying role — `security definer` bypasses
+  that. **Gotcha hit during verification**: `studio_sessions`' own
+  select/update policies must NOT re-query `studio_sessions` from inside
+  their helper function — `insert ... returning` evaluates the return
+  row's SELECT policy using the insert statement's own snapshot, and a
+  security-definer function that re-queries the table currently being
+  inserted into can miss the just-inserted row under that snapshot (insert
+  succeeds, the chained `.select()` on it inexplicably fails RLS). Fixed
+  by `studio_session_is_member_of(id, owner_wallet)` taking the row's own
+  columns as arguments instead of looking the row up again.
+- Verified end-to-end with three scripted wallets (owner, invited
+  collaborator, uninvited stranger) against a live Supabase project,
+  including a live realtime delivery check — not just RLS unit checks.
 
 ## Conventions
 
@@ -147,8 +190,9 @@ message, exchange the signature for a Supabase-compatible JWT.
   `styles/buttons.module.css` and `styles/layout.module.css`
 - No frontend test suite in `apps/web` yet — only `npm run typecheck` is
   wired up; `packages/contracts` has a real Hardhat test suite
-- No CLAUDE.md/README beyond this skill — this file is the primary
-  reference for the project
+- No CLAUDE.md — this file is the primary technical reference; the root
+  `README.md` has a user-facing "Collaborators guide" for The Studio's
+  sharing feature, kept in sync with what's actually shipped
 
 ## Keeping this skill current
 

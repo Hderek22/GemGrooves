@@ -1,13 +1,34 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 import { decodeBlobToBuffer, getAudioContext } from '../lib/audioEngine';
 import { STUDIO_AUDIO_BUCKET, supabase, supabaseConfigured } from '../lib/supabase';
-import type { StudioTrack, UseMultiTrackSessionReturn } from './useMultiTrackSession';
+import type { StudioTrack, TrackPatch, UseMultiTrackSessionReturn } from './useMultiTrackSession';
 
 export interface SavedSessionSummary {
   id: string;
   name: string;
   updatedAt: string;
+}
+
+interface TrackRow {
+  id: string;
+  name: string;
+  storage_path: string;
+  duration_sec: number;
+  gain: number;
+  muted: boolean;
+  solo: boolean;
+  offset_sec: number;
+  looped: boolean | null;
+}
+
+interface SessionRow {
+  id: string;
+  name: string;
+  bpm: number;
+  count_in_enabled: boolean;
+  is_shared: boolean | null;
 }
 
 function extensionForMime(mime: string): string {
@@ -19,18 +40,58 @@ function extensionForMime(mime: string): string {
   return 'bin';
 }
 
+async function downloadAndDecodeTrack(row: TrackRow): Promise<StudioTrack> {
+  const { data: blob, error: downloadError } = await supabase.storage
+    .from(STUDIO_AUDIO_BUCKET)
+    .download(row.storage_path);
+  if (downloadError || !blob) {
+    throw new Error(downloadError?.message ?? `Could not download audio for "${row.name}"`);
+  }
+
+  const buffer = await decodeBlobToBuffer(getAudioContext(), blob);
+  return {
+    id: row.id,
+    name: row.name,
+    blob,
+    buffer,
+    durationSec: row.duration_sec,
+    gain: row.gain,
+    muted: row.muted,
+    solo: row.solo,
+    offsetSec: row.offset_sec,
+    looped: row.looped ?? false,
+    remoteId: row.id,
+    storagePath: row.storage_path,
+  };
+}
+
+function trackMetadataPatch(row: TrackRow): TrackPatch {
+  return {
+    name: row.name,
+    gain: row.gain,
+    muted: row.muted,
+    solo: row.solo,
+    offsetSec: row.offset_sec,
+    looped: row.looped ?? false,
+  };
+}
+
 export function useSessionPersistence(
   session: UseMultiTrackSessionReturn,
-  walletAddress: string | undefined
+  walletAddress: string | undefined,
+  isSignedIn: boolean
 ) {
   const [savedSessions, setSavedSessions] = useState<SavedSessionSummary[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isShared, setIsShared] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const syncedRemoteIdsRef = useRef<Set<string>>(new Set());
 
+  const { applyRemoteTrackSync, setSessionName, setBpm, setCountInEnabled } = session;
+
   const refreshSavedSessions = useCallback(async () => {
-    if (!supabaseConfigured || !walletAddress) {
+    if (!supabaseConfigured || !walletAddress || !isSignedIn) {
       setSavedSessions([]);
       return;
     }
@@ -45,7 +106,7 @@ export function useSessionPersistence(
       return;
     }
     setSavedSessions((data ?? []).map((row) => ({ id: row.id, name: row.name, updatedAt: row.updated_at })));
-  }, [walletAddress]);
+  }, [walletAddress, isSignedIn]);
 
   const saveSession = useCallback(async () => {
     if (!supabaseConfigured) {
@@ -54,6 +115,10 @@ export function useSessionPersistence(
     }
     if (!walletAddress) {
       setError('Connect a wallet first.');
+      return;
+    }
+    if (!isSignedIn) {
+      setError('Sign in to collaborate first.');
       return;
     }
 
@@ -155,10 +220,15 @@ export function useSessionPersistence(
     } finally {
       setIsSaving(false);
     }
-  }, [session, walletAddress, refreshSavedSessions]);
+  }, [session, walletAddress, isSignedIn, refreshSavedSessions]);
 
   const loadSession = useCallback(
     async (id: string) => {
+      if (!isSignedIn) {
+        setError('Sign in to collaborate first.');
+        return;
+      }
+
       setIsLoading(true);
       setError(null);
       try {
@@ -168,6 +238,7 @@ export function useSessionPersistence(
           .eq('id', id)
           .single();
         if (sessionError || !sessionRow) throw new Error(sessionError?.message ?? 'Session not found');
+        const row = sessionRow as SessionRow;
 
         const { data: trackRows, error: tracksError } = await supabase
           .from('studio_tracks')
@@ -175,38 +246,17 @@ export function useSessionPersistence(
           .eq('session_id', id);
         if (tracksError) throw new Error(tracksError.message);
 
-        const ctx = getAudioContext();
         const loadedTracks: StudioTrack[] = [];
-        for (const row of trackRows ?? []) {
-          const { data: blob, error: downloadError } = await supabase.storage
-            .from(STUDIO_AUDIO_BUCKET)
-            .download(row.storage_path);
-          if (downloadError || !blob) {
-            throw new Error(downloadError?.message ?? `Could not download audio for "${row.name}"`);
-          }
-
-          const buffer = await decodeBlobToBuffer(ctx, blob);
-          loadedTracks.push({
-            id: row.id,
-            name: row.name,
-            blob,
-            buffer,
-            durationSec: row.duration_sec,
-            gain: row.gain,
-            muted: row.muted,
-            solo: row.solo,
-            offsetSec: row.offset_sec,
-            looped: row.looped ?? false,
-            remoteId: row.id,
-            storagePath: row.storage_path,
-          });
+        for (const trackRow of (trackRows ?? []) as TrackRow[]) {
+          loadedTracks.push(await downloadAndDecodeTrack(trackRow));
         }
 
         session.loadTracks(loadedTracks);
-        session.setSessionId(sessionRow.id);
-        session.setSessionName(sessionRow.name);
-        session.setBpm(sessionRow.bpm);
-        session.setCountInEnabled(sessionRow.count_in_enabled);
+        session.setSessionId(row.id);
+        session.setSessionName(row.name);
+        session.setBpm(row.bpm);
+        session.setCountInEnabled(row.count_in_enabled);
+        setIsShared(row.is_shared ?? false);
         syncedRemoteIdsRef.current = new Set(loadedTracks.map((track) => track.remoteId as string));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Could not load session');
@@ -214,22 +264,145 @@ export function useSessionPersistence(
         setIsLoading(false);
       }
     },
-    [session]
+    [session, isSignedIn]
   );
+
+  /**
+   * Self-service join for a session shared via link: adds the connected,
+   * signed-in wallet as a collaborator (RLS only allows this when the
+   * session's `is_shared` flag is on), then loads it. Already being a
+   * member (or already the owner) is fine — the load right after is what
+   * actually proves access either way.
+   */
+  const joinSession = useCallback(
+    async (id: string) => {
+      if (!supabaseConfigured) {
+        setError('Supabase is not configured.');
+        return;
+      }
+      if (!walletAddress || !isSignedIn) {
+        setError('Sign in to collaborate first.');
+        return;
+      }
+
+      const { error: joinError } = await supabase
+        .from('studio_session_collaborators')
+        .insert({ session_id: id, wallet: walletAddress.toLowerCase() });
+      // Postgres 23505 = unique_violation (already a collaborator) — fine.
+      // Any other error (e.g. session isn't shared) is left for loadSession
+      // to surface as a clear "Session not found" instead of duplicating it.
+      if (joinError && joinError.code !== '23505') {
+        // no-op: fall through to loadSession
+      }
+
+      await loadSession(id);
+    },
+    [walletAddress, isSignedIn, loadSession]
+  );
+
+  /** Marks the current session shareable and returns a link others can join with. */
+  const shareSession = useCallback(async (): Promise<string | null> => {
+    if (!supabaseConfigured) {
+      setError('Supabase is not configured.');
+      return null;
+    }
+    if (!isSignedIn) {
+      setError('Sign in to collaborate first.');
+      return null;
+    }
+    if (!session.sessionId) {
+      setError('Save the session first, then share it.');
+      return null;
+    }
+
+    const { error: shareError } = await supabase
+      .from('studio_sessions')
+      .update({ is_shared: true })
+      .eq('id', session.sessionId);
+    if (shareError) {
+      setError(shareError.message);
+      return null;
+    }
+    setIsShared(true);
+    return `${window.location.origin}/TheStudio/${session.sessionId}`;
+  }, [isSignedIn, session.sessionId]);
 
   const newSession = useCallback(() => {
     session.resetSession();
     session.setSessionId(null);
     session.setSessionName('Untitled Session');
+    setIsShared(false);
     syncedRemoteIdsRef.current = new Set();
     setError(null);
   }, [session]);
+
+  // Realtime: reflect a collaborator's saved changes as soon as they land.
+  // Sync-on-save, not live-per-keystroke — this fires from the same
+  // postgres rows saveSession() itself writes, so it also echoes our own
+  // saves back to us (harmless: applyRemoteTrackSync is idempotent, and
+  // syncedRemoteIdsRef dedupes a self-inserted track from being re-added).
+  useEffect(() => {
+    const sessionId = session.sessionId;
+    if (!sessionId || !supabaseConfigured || !isSignedIn) return;
+
+    const handleTrackChange = async (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+      if (payload.eventType === 'DELETE') {
+        const oldId = (payload.old as Partial<TrackRow>).id;
+        if (oldId && syncedRemoteIdsRef.current.has(oldId)) {
+          syncedRemoteIdsRef.current.delete(oldId);
+          applyRemoteTrackSync({ updated: [], added: [], removedRemoteIds: [oldId] });
+        }
+        return;
+      }
+
+      const row = payload.new as unknown as TrackRow;
+      if (syncedRemoteIdsRef.current.has(row.id)) {
+        applyRemoteTrackSync({ updated: [{ remoteId: row.id, patch: trackMetadataPatch(row) }], added: [], removedRemoteIds: [] });
+        return;
+      }
+
+      try {
+        const track = await downloadAndDecodeTrack(row);
+        syncedRemoteIdsRef.current.add(row.id);
+        applyRemoteTrackSync({ updated: [], added: [track], removedRemoteIds: [] });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not sync a collaborator's new track");
+      }
+    };
+
+    const channel = supabase
+      .channel(`studio-session-${sessionId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'studio_tracks', filter: `session_id=eq.${sessionId}` },
+        (payload) => void handleTrackChange(payload)
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'studio_sessions', filter: `id=eq.${sessionId}` },
+        (payload) => {
+          const row = payload.new as SessionRow;
+          setSessionName(row.name);
+          setBpm(row.bpm);
+          setCountInEnabled(row.count_in_enabled);
+          setIsShared(row.is_shared ?? false);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [session.sessionId, isSignedIn, applyRemoteTrackSync, setSessionName, setBpm, setCountInEnabled]);
 
   return {
     savedSessions,
     refreshSavedSessions,
     saveSession,
     loadSession,
+    joinSession,
+    shareSession,
+    isShared,
     newSession,
     isSaving,
     isLoading,

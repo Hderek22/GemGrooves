@@ -10,11 +10,16 @@ function createSupabaseClient(authToken: string | null): SupabaseClient {
   // Supabase configured — session persistence is simply unavailable until
   // VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY are set, everything else in
   // The Studio works the same either way.
-  return createClient(
+  const client = createClient(
     supabaseUrl || 'https://placeholder.supabase.co',
     supabaseAnonKey || 'placeholder-anon-key',
     authToken ? { global: { headers: { Authorization: `Bearer ${authToken}` } } } : undefined
   );
+  // The `global.headers` override above only affects REST/Storage fetches —
+  // Realtime's websocket connection carries its own auth, so RLS-scoped
+  // postgres_changes subscriptions need the JWT set here too.
+  if (authToken) client.realtime.setAuth(authToken);
+  return client;
 }
 
 // Mutable so setSupabaseAuthToken can swap in a SIWE-authenticated client —

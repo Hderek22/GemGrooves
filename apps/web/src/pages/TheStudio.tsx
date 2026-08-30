@@ -1,5 +1,5 @@
 import { useEffect, useState, type DragEvent, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { isAddress, parseUnits, type Address } from 'viem';
 import { useAccount } from 'wagmi';
 
@@ -23,10 +23,12 @@ interface SplitRow {
 }
 
 function TheStudio() {
+  const { sessionId: sessionIdParam } = useParams<{ sessionId?: string }>();
   const { address, isConnected } = useAccount();
   const session = useMultiTrackSession();
-  const persistence = useSessionPersistence(session, address);
   const siwe = useSiweAuth();
+  const persistence = useSessionPersistence(session, address, siwe.isSignedIn);
+  const [shareStatus, setShareStatus] = useState<string | null>(null);
   const { uploadTrack, isUploading } = useIpfsUpload();
   const { options: payTokenOptions } = usePayTokenOptions();
   const {
@@ -61,6 +63,26 @@ function TheStudio() {
   useEffect(() => {
     void persistence.refreshSavedSessions();
   }, [persistence.refreshSavedSessions]);
+
+  // A /TheStudio/:sessionId link is an invite — join (self-service, RLS
+  // only allows it while the session is shared) and load it once signed in.
+  useEffect(() => {
+    if (sessionIdParam && siwe.isSignedIn && session.sessionId !== sessionIdParam) {
+      void persistence.joinSession(sessionIdParam);
+    }
+  }, [sessionIdParam, siwe.isSignedIn, session.sessionId, persistence.joinSession]);
+
+  const handleShareSession = async () => {
+    setShareStatus(null);
+    const url = await persistence.shareSession();
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareStatus('Link copied — send it to a collaborator.');
+    } catch {
+      setShareStatus(url);
+    }
+  };
 
   const updateSplit = (index: number, patch: Partial<SplitRow>) => {
     setSplits((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
@@ -241,6 +263,9 @@ function TheStudio() {
           onSave={() => void persistence.saveSession()}
           onLoad={(id) => void persistence.loadSession(id)}
           onNew={persistence.newSession}
+          onShare={() => void handleShareSession()}
+          isShared={persistence.isShared}
+          shareStatus={shareStatus}
           isSaving={persistence.isSaving}
           isLoading={persistence.isLoading}
           error={persistence.error}

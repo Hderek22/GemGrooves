@@ -156,6 +156,33 @@ export function useMultiTrackSession() {
     setTracks((prev) => prev.map((track) => (track.id === id ? { ...track, ...patch } : track)));
   }, []);
 
+  /**
+   * Applies a collaborator's saved changes without the full-replace
+   * `loadTracks` does — a plain replace would also wipe out any track a
+   * collaborator has added locally but not yet saved (no `remoteId` yet).
+   * Only tracks already synced (matched by `remoteId`) are touched:
+   * patched in place, added if new, or dropped if removed remotely.
+   */
+  const applyRemoteTrackSync = useCallback(
+    (params: { updated: { remoteId: string; patch: TrackPatch }[]; added: StudioTrack[]; removedRemoteIds: string[] }) => {
+      setTracks((prev) => {
+        const withoutRemoved = prev.filter(
+          (track) => !track.remoteId || !params.removedRemoteIds.includes(track.remoteId)
+        );
+        const patched = withoutRemoved.map((track) => {
+          if (!track.remoteId) return track;
+          const match = params.updated.find((u) => u.remoteId === track.remoteId);
+          return match ? { ...track, ...match.patch } : track;
+        });
+        const withoutDuplicates = params.added.filter(
+          (track) => !patched.some((existing) => existing.remoteId === track.remoteId)
+        );
+        return [...patched, ...withoutDuplicates];
+      });
+    },
+    []
+  );
+
   const play = useCallback(() => {
     if (tracks.length === 0) return;
     getController().play(toPlaybackTracks(tracks), currentTime);
@@ -245,6 +272,7 @@ export function useMultiTrackSession() {
     loadTracks,
     removeTrack,
     updateTrack,
+    applyRemoteTrackSync,
     play,
     pause,
     stop,

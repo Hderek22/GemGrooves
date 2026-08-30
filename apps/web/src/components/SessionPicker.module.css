@@ -33,3 +33,10 @@
   font-size: 0.85em;
   text-align: left;
 }
+
+.status {
+  width: 100%;
+  color: var(--color-gray-400, inherit);
+  font-size: 0.85em;
+  text-align: left;
+}

@@ -18,6 +18,7 @@ const router = createBrowserRouter([
       { path: '/OurPurpose', element: <OurPurpose /> },
       { path: '/TheLounge', element: <TheLounge /> },
       { path: '/TheStudio', element: <TheStudio /> },
+      { path: '/TheStudio/:sessionId', element: <TheStudio /> },
       { path: '/TheRecordShop', element: <TheRecordShop /> },
     ],
   },
