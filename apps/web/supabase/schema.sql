@@ -32,13 +32,29 @@ create table if not exists studio_tracks (
   solo boolean not null default false,
   offset_sec double precision not null default 0,
   looped boolean not null default false,
+  -- Per-track FX (Studio Phase: effects chain). Null = use the app-side
+  -- DEFAULT_TRACK_FX values (audioEngine.ts) — nullable rather than
+  -- defaulted here so a track saved before this feature existed is
+  -- unambiguously "never touched FX" rather than "explicitly flat/off".
+  fx_eq_low real,
+  fx_eq_mid real,
+  fx_eq_high real,
+  fx_comp_threshold real,
+  fx_comp_ratio real,
+  fx_reverb_wet real,
   created_at timestamptz not null default now()
 );
 
--- Re-running this file against a database created before the loop-pedal
--- feature needs this to backfill the new column (create table above only
--- applies to a fresh database).
+-- Re-running this file against a database created before these features
+-- needs this to backfill the columns (create table above only applies to
+-- a fresh database).
 alter table studio_tracks add column if not exists looped boolean not null default false;
+alter table studio_tracks add column if not exists fx_eq_low real;
+alter table studio_tracks add column if not exists fx_eq_mid real;
+alter table studio_tracks add column if not exists fx_eq_high real;
+alter table studio_tracks add column if not exists fx_comp_threshold real;
+alter table studio_tracks add column if not exists fx_comp_ratio real;
+alter table studio_tracks add column if not exists fx_reverb_wet real;
 
 -- Studio Phase 3, part 2: link-based sharing. A session is only joinable
 -- by a stranger with the link while this is true — the owner turns it on

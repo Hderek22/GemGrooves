@@ -15,6 +15,25 @@ export async function decodeBlobToBuffer(ctx: BaseAudioContext, blob: Blob): Pro
   return ctx.decodeAudioData(arrayBuffer);
 }
 
+export interface TrackFx {
+  eqLowGainDb: number;
+  eqMidGainDb: number;
+  eqHighGainDb: number;
+  compThresholdDb: number;
+  compRatio: number;
+  reverbWetPct: number;
+}
+
+/** All values chosen to be audibly transparent — a track with untouched FX sounds identical to one with no FX chain at all. */
+export const DEFAULT_TRACK_FX: TrackFx = {
+  eqLowGainDb: 0,
+  eqMidGainDb: 0,
+  eqHighGainDb: 0,
+  compThresholdDb: -24,
+  compRatio: 1,
+  reverbWetPct: 0,
+};
+
 export interface PlaybackTrack {
   id: string;
   buffer: AudioBuffer;
@@ -24,15 +43,90 @@ export interface PlaybackTrack {
   offsetSec: number;
   /** Loop-pedal mode: keep repeating this track's buffer instead of playing it once. */
   looped: boolean;
+  fx: TrackFx;
+}
+
+interface TrackFxNodes {
+  eqLow: BiquadFilterNode;
+  eqMid: BiquadFilterNode;
+  eqHigh: BiquadFilterNode;
+  compressor: DynamicsCompressorNode;
+  dryGain: GainNode;
+  wetGain: GainNode;
 }
 
 interface ActiveNode {
   source: AudioBufferSourceNode;
   gain: GainNode;
+  fx: TrackFxNodes;
 }
 
 function isAudible(track: PlaybackTrack, anySolo: boolean): boolean {
   return anySolo ? track.solo : !track.muted;
+}
+
+/** A short synthetic noise-decay impulse response — no bundled audio asset needed for the reverb send. */
+function buildImpulseResponse(ctx: BaseAudioContext, durationSec = 2, decay = 3): AudioBuffer {
+  const length = Math.max(1, Math.floor(ctx.sampleRate * durationSec));
+  const impulse = ctx.createBuffer(2, length, ctx.sampleRate);
+  for (let channel = 0; channel < impulse.numberOfChannels; channel++) {
+    const data = impulse.getChannelData(channel);
+    for (let i = 0; i < length; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+    }
+  }
+  return impulse;
+}
+
+function applyTrackFxParams(nodes: TrackFxNodes, fx: TrackFx): void {
+  nodes.eqLow.gain.value = fx.eqLowGainDb;
+  nodes.eqMid.gain.value = fx.eqMidGainDb;
+  nodes.eqHigh.gain.value = fx.eqHighGainDb;
+  nodes.compressor.threshold.value = fx.compThresholdDb;
+  nodes.compressor.ratio.value = fx.compRatio;
+  const wet = Math.min(1, Math.max(0, fx.reverbWetPct / 100));
+  nodes.wetGain.gain.value = wet;
+  nodes.dryGain.gain.value = 1 - wet;
+}
+
+/**
+ * Builds the per-track FX chain shared by live playback and offline
+ * mixdown — `input -> 3-band EQ -> compressor -> [dry/reverb-wet mix] ->
+ * output`, ready to connect onward to a master bus. Always fully wired
+ * regardless of `fx` values (even fully "bypassed" ones) rather than
+ * conditionally built, so a parameter change during playback never needs
+ * to rebuild the graph — just `applyTrackFxParams`. `AudioContext` and
+ * `OfflineAudioContext` both implement `BaseAudioContext`, so this one
+ * function serves both the live and offline paths identically.
+ */
+function buildTrackFxChain(ctx: BaseAudioContext, input: AudioNode, fx: TrackFx): { output: GainNode; nodes: TrackFxNodes } {
+  const eqLow = ctx.createBiquadFilter();
+  eqLow.type = 'lowshelf';
+  eqLow.frequency.value = 320;
+
+  const eqMid = ctx.createBiquadFilter();
+  eqMid.type = 'peaking';
+  eqMid.frequency.value = 1000;
+  eqMid.Q.value = 0.8;
+
+  const eqHigh = ctx.createBiquadFilter();
+  eqHigh.type = 'highshelf';
+  eqHigh.frequency.value = 3200;
+
+  const compressor = ctx.createDynamicsCompressor();
+  const dryGain = ctx.createGain();
+  const wetGain = ctx.createGain();
+  const reverb = ctx.createConvolver();
+  reverb.buffer = buildImpulseResponse(ctx);
+  const output = ctx.createGain();
+
+  input.connect(eqLow).connect(eqMid).connect(eqHigh).connect(compressor);
+  compressor.connect(dryGain).connect(output);
+  compressor.connect(reverb).connect(wetGain).connect(output);
+
+  const nodes: TrackFxNodes = { eqLow, eqMid, eqHigh, compressor, dryGain, wetGain };
+  applyTrackFxParams(nodes, fx);
+  return { output, nodes };
 }
 
 /**
@@ -43,6 +137,7 @@ function isAudible(track: PlaybackTrack, anySolo: boolean): boolean {
 export class PlaybackController {
   private ctx: AudioContext;
   private nodes = new Map<string, ActiveNode>();
+  private masterGain: GainNode | null = null;
   private startedAtCtxTime = 0;
   private startedAtPositionSec = 0;
   private playing = false;
@@ -68,6 +163,10 @@ export class PlaybackController {
     this.startedAtCtxTime = ctxStart;
     this.startedAtPositionSec = positionSec;
 
+    const masterGain = this.ctx.createGain();
+    masterGain.connect(this.ctx.destination);
+    this.masterGain = masterGain;
+
     for (const track of tracks) {
       const intoBuffer = positionSec - track.offsetSec;
       if (!track.looped && intoBuffer >= track.buffer.duration) continue;
@@ -76,7 +175,9 @@ export class PlaybackController {
       source.buffer = track.buffer;
       const gainNode = this.ctx.createGain();
       gainNode.gain.value = isAudible(track, anySolo) ? track.gain : 0;
-      source.connect(gainNode).connect(this.ctx.destination);
+      source.connect(gainNode);
+      const { output, nodes: fxNodes } = buildTrackFxChain(this.ctx, gainNode, track.fx);
+      output.connect(masterGain);
 
       if (track.looped) {
         source.loop = true;
@@ -87,7 +188,7 @@ export class PlaybackController {
       } else {
         source.start(ctxStart - intoBuffer);
       }
-      this.nodes.set(track.id, { source, gain: gainNode });
+      this.nodes.set(track.id, { source, gain: gainNode, fx: fxNodes });
     }
 
     this.playing = true;
@@ -106,6 +207,10 @@ export class PlaybackController {
       source.disconnect();
     }
     this.nodes.clear();
+    if (this.masterGain) {
+      this.masterGain.disconnect();
+      this.masterGain = null;
+    }
     this.playing = false;
   }
 
@@ -117,13 +222,14 @@ export class PlaybackController {
     }
   }
 
-  /** Re-applies gain/mute/solo to already-scheduled nodes without restarting playback. */
+  /** Re-applies gain/mute/solo/fx to already-scheduled nodes without restarting playback. */
   updateLiveMix(tracks: PlaybackTrack[]): void {
     const anySolo = tracks.some((track) => track.solo);
     for (const track of tracks) {
       const node = this.nodes.get(track.id);
       if (!node) continue;
       node.gain.gain.value = isAudible(track, anySolo) ? track.gain : 0;
+      applyTrackFxParams(node.fx, track.fx);
     }
   }
 }
@@ -154,6 +260,7 @@ export interface MixdownTrack {
   muted: boolean;
   offsetSec: number;
   looped: boolean;
+  fx: TrackFx;
 }
 
 export async function renderMixdown(
@@ -165,6 +272,9 @@ export async function renderMixdown(
   const length = Math.max(1, Math.ceil(durationSec * sampleRate));
   const offlineCtx = new OfflineAudioContext(channels, length, sampleRate);
 
+  const masterGain = offlineCtx.createGain();
+  masterGain.connect(offlineCtx.destination);
+
   for (const track of tracks) {
     if (track.muted) continue;
     const source = offlineCtx.createBufferSource();
@@ -172,7 +282,9 @@ export async function renderMixdown(
     if (track.looped) source.loop = true;
     const gainNode = offlineCtx.createGain();
     gainNode.gain.value = track.gain;
-    source.connect(gainNode).connect(offlineCtx.destination);
+    source.connect(gainNode);
+    const { output } = buildTrackFxChain(offlineCtx, gainNode, track.fx);
+    output.connect(masterGain);
     source.start(Math.max(0, track.offsetSec));
   }
 

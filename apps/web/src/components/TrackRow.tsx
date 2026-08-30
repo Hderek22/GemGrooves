@@ -1,7 +1,8 @@
-import { useRef, type PointerEvent as ReactPointerEvent } from 'react';
+import { useState, useRef, type PointerEvent as ReactPointerEvent } from 'react';
 
 import type { StudioTrack, TrackPatch } from '../hooks/useMultiTrackSession';
 import buttons from '../styles/buttons.module.css';
+import EffectsPanel from './EffectsPanel';
 import styles from './TrackRow.module.css';
 import Waveform from './Waveform';
 
@@ -25,6 +26,7 @@ function TrackRow({
   onRemove,
 }: TrackRowProps) {
   const dragState = useRef<{ startClientX: number; startOffsetSec: number } | null>(null);
+  const [showFx, setShowFx] = useState(false);
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!draggable) return;
@@ -87,10 +89,19 @@ function TrackRow({
             onChange={(event) => onUpdate({ gain: Number(event.target.value) })}
             title="Volume"
           />
+          <button
+            type="button"
+            className={showFx ? styles.toggleActive : styles.toggle}
+            onClick={() => setShowFx((prev) => !prev)}
+            title="Effects: EQ, compressor, reverb"
+          >
+            FX
+          </button>
           <button type="button" className={buttons.pillOutline} onClick={onRemove} title="Remove track">
             &minus;
           </button>
         </div>
+        {showFx && <EffectsPanel fx={track.fx} onChange={(fx) => onUpdate({ fx })} />}
       </div>
 
       <div className={styles.lane} style={{ width: timelineWidthSec * pxPerSec }}>

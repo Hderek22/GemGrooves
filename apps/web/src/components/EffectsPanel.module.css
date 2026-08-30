@@ -1,0 +1,21 @@
+.panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.9rem;
+  padding: 0.5rem 0;
+  margin-top: 0.35rem;
+  border-top: 1px solid var(--color-gray-700);
+}
+
+.control {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.7em;
+  color: var(--color-gray-400);
+}
+
+.control input[type='range'] {
+  width: 4rem;
+  accent-color: var(--color-primary-900);
+}

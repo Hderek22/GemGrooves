@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
-import { decodeBlobToBuffer, getAudioContext } from '../lib/audioEngine';
+import { DEFAULT_TRACK_FX, decodeBlobToBuffer, getAudioContext, type TrackFx } from '../lib/audioEngine';
 import { STUDIO_AUDIO_BUCKET, supabase, supabaseConfigured } from '../lib/supabase';
 import type { StudioTrack, TrackPatch, UseMultiTrackSessionReturn } from './useMultiTrackSession';
 
@@ -21,6 +21,34 @@ interface TrackRow {
   solo: boolean;
   offset_sec: number;
   looped: boolean | null;
+  fx_eq_low: number | null;
+  fx_eq_mid: number | null;
+  fx_eq_high: number | null;
+  fx_comp_threshold: number | null;
+  fx_comp_ratio: number | null;
+  fx_reverb_wet: number | null;
+}
+
+function fxFromRow(row: TrackRow): TrackFx {
+  return {
+    eqLowGainDb: row.fx_eq_low ?? DEFAULT_TRACK_FX.eqLowGainDb,
+    eqMidGainDb: row.fx_eq_mid ?? DEFAULT_TRACK_FX.eqMidGainDb,
+    eqHighGainDb: row.fx_eq_high ?? DEFAULT_TRACK_FX.eqHighGainDb,
+    compThresholdDb: row.fx_comp_threshold ?? DEFAULT_TRACK_FX.compThresholdDb,
+    compRatio: row.fx_comp_ratio ?? DEFAULT_TRACK_FX.compRatio,
+    reverbWetPct: row.fx_reverb_wet ?? DEFAULT_TRACK_FX.reverbWetPct,
+  };
+}
+
+function fxToRow(fx: TrackFx) {
+  return {
+    fx_eq_low: fx.eqLowGainDb,
+    fx_eq_mid: fx.eqMidGainDb,
+    fx_eq_high: fx.eqHighGainDb,
+    fx_comp_threshold: fx.compThresholdDb,
+    fx_comp_ratio: fx.compRatio,
+    fx_reverb_wet: fx.reverbWetPct,
+  };
 }
 
 interface SessionRow {
@@ -60,6 +88,7 @@ async function downloadAndDecodeTrack(row: TrackRow): Promise<StudioTrack> {
     solo: row.solo,
     offsetSec: row.offset_sec,
     looped: row.looped ?? false,
+    fx: fxFromRow(row),
     remoteId: row.id,
     storagePath: row.storage_path,
   };
@@ -73,6 +102,7 @@ function trackMetadataPatch(row: TrackRow): TrackPatch {
     solo: row.solo,
     offsetSec: row.offset_sec,
     looped: row.looped ?? false,
+    fx: fxFromRow(row),
   };
 }
 
@@ -181,6 +211,7 @@ export function useSessionPersistence(
               solo: track.solo,
               offset_sec: track.offsetSec,
               looped: track.looped,
+              ...fxToRow(track.fx),
             })
             .select('id')
             .single();
@@ -201,6 +232,7 @@ export function useSessionPersistence(
               solo: track.solo,
               offset_sec: track.offsetSec,
               looped: track.looped,
+              ...fxToRow(track.fx),
             })
             .eq('id', track.remoteId);
           if (trackUpdateError) throw new Error(trackUpdateError.message);

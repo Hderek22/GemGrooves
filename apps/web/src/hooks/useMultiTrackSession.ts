@@ -3,11 +3,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   audioBufferToWav,
   decodeBlobToBuffer,
+  DEFAULT_TRACK_FX,
   getAudioContext,
   playCountIn,
   PlaybackController,
   renderMixdown,
   type PlaybackTrack,
+  type TrackFx,
 } from '../lib/audioEngine';
 import { useMicRecorder } from './useMicRecorder';
 
@@ -25,6 +27,7 @@ export interface StudioTrack {
   offsetSec: number;
   /** Loop-pedal mode: keep repeating this track while other tracks are dubbed on top. */
   looped: boolean;
+  fx: TrackFx;
   /** Set once this track has been uploaded to Supabase Storage; absence means "not yet saved." */
   remoteId?: string;
   storagePath?: string;
@@ -33,7 +36,7 @@ export interface StudioTrack {
 export type TrackPatch = Partial<
   Pick<
     StudioTrack,
-    'name' | 'gain' | 'muted' | 'solo' | 'offsetSec' | 'looped' | 'remoteId' | 'storagePath'
+    'name' | 'gain' | 'muted' | 'solo' | 'offsetSec' | 'looped' | 'fx' | 'remoteId' | 'storagePath'
   >
 >;
 
@@ -50,6 +53,7 @@ function toPlaybackTracks(tracks: StudioTrack[]): PlaybackTrack[] {
     solo: track.solo,
     offsetSec: track.offsetSec,
     looped: track.looped,
+    fx: track.fx,
   }));
 }
 
@@ -126,6 +130,7 @@ export function useMultiTrackSession() {
           solo: false,
           offsetSec,
           looped: false,
+          fx: DEFAULT_TRACK_FX,
         };
         setTracks((prev) => [...prev, track]);
         return track;
@@ -243,6 +248,7 @@ export function useMultiTrackSession() {
         muted: track.muted,
         offsetSec: track.offsetSec,
         looped: track.looped,
+        fx: track.fx,
       })),
       sessionDurationSec
     );

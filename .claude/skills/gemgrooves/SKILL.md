@@ -35,20 +35,21 @@ Keep this file current — see "Keeping this skill current" at the bottom.
 - `hooks/useMultiTrackSession.ts` — core session state: tracks, transport
   (play/pause/stop/record), BPM/count-in, mixdown rendering
 - `lib/audioEngine.ts` — Web Audio primitives: `PlaybackController`
-  (schedules multi-track playback against one shared clock),
-  `renderMixdown` (OfflineAudioContext export), `audioBufferToWav`,
-  `playCountIn`
+  (schedules multi-track playback against one shared clock, through a
+  per-track FX chain into a master bus), `renderMixdown`
+  (OfflineAudioContext export, same FX-chain/master-bus graph),
+  `audioBufferToWav`, `playCountIn`
 - `hooks/useMicRecorder.ts` — `MediaRecorder`/`getUserMedia` wrapper
 - `hooks/useSessionPersistence.ts` — Supabase-backed save/load of sessions
   and tracks (see `apps/web/supabase/schema.sql`), plus realtime
   collaborator sync and session sharing/joining (see Collaboration below)
 - Components: `Transport`, `Timeline`, `TrackRow` (per-track
-  mute/solo/loop/gain/drag), `SessionPicker`, `Waveform`
+  mute/solo/loop/gain/drag/FX), `EffectsPanel`, `SessionPicker`, `Waveform`
 
 ### StudioTrack model
 
 Fields: `id, name, blob, buffer, durationSec, gain, muted, solo, offsetSec,
-looped, remoteId?, storagePath?`.
+looped, fx, remoteId?, storagePath?`.
 
 Adding a new per-track property touches ~5 places — check all of them:
 1. `StudioTrack` interface + `TrackPatch` (`useMultiTrackSession.ts`)
@@ -67,6 +68,25 @@ TrackRow's 🔁 button, so other tracks can be dubbed on top. Implemented via
 `AudioBufferSourceNode.loop` in `PlaybackController.play`/`renderMixdown`;
 the `useMultiTrackSession` tick effect suspends its normal
 auto-stop-at-session-end behavior while any track is looped.
+
+### Per-track effects chain + master bus
+
+Every track always runs through the full chain — `gain -> 3-band EQ
+(BiquadFilterNode ×3) -> DynamicsCompressorNode -> [dry/reverb-wet
+ConvolverNode mix] -> output`, then every track's `output` feeds one shared
+master `GainNode` that connects to the actual destination (live
+`ctx.destination` or offline `offlineCtx.destination`). There's no
+conditional bypass-by-omission: `TrackFx`'s default values
+(`DEFAULT_TRACK_FX` in `audioEngine.ts`) are chosen to be audibly
+transparent (0dB EQ gains, compressor `ratio: 1` = no gain reduction ever,
+`reverbWetPct: 0`) so a parameter change during live playback never needs
+to rebuild the graph — just `applyTrackFxParams`, the same live-patch
+pattern `updateLiveMix` already used for gain/mute/solo. `buildTrackFxChain`
+in `audioEngine.ts` is the one function both `PlaybackController.play` and
+`renderMixdown` call, since `AudioContext`/`OfflineAudioContext` both
+satisfy `BaseAudioContext` — keeping live/offline parity by construction
+rather than by convention. Reverb uses a synthetic noise-decay impulse
+response generated in code (`buildImpulseResponse`), not a bundled asset.
 
 ## Minting / on-chain flow
 
