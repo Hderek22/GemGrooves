@@ -55,6 +55,7 @@ function TheStudio() {
   const [isDownloadingMix, setIsDownloadingMix] = useState(false);
   const [showLoops, setShowLoops] = useState(false);
   const [isAddingLoop, setIsAddingLoop] = useState(false);
+  const [autoMaster, setAutoMaster] = useState(true);
 
   useEffect(() => {
     if (address) {
@@ -131,7 +132,7 @@ function TheStudio() {
       const selectedToken = payTokenOptions[payTokenIndex];
 
       setIsRendering(true);
-      const mixdownFile = await session.renderMixdownFile().finally(() => setIsRendering(false));
+      const mixdownFile = await session.renderMixdownFile(autoMaster).finally(() => setIsRendering(false));
 
       const tokenURI = await uploadTrack({
         audioFile: mixdownFile,
@@ -238,7 +239,7 @@ function TheStudio() {
     setIsDownloadingMix(true);
     setFormError(null);
     try {
-      const file = await session.renderMixdownFile();
+      const file = await session.renderMixdownFile(autoMaster);
       const url = URL.createObjectURL(file);
       const link = document.createElement('a');
       link.href = url;
@@ -304,6 +305,8 @@ function TheStudio() {
           onDownloadMix={() => void handleDownloadMix()}
           canDownloadMix={session.tracks.length > 0}
           isDownloadingMix={isDownloadingMix}
+          autoMaster={autoMaster}
+          onAutoMasterChange={setAutoMaster}
           bpm={session.bpm}
           onBpmChange={session.setBpm}
           countInEnabled={session.countInEnabled}

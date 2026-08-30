@@ -303,6 +303,71 @@ export async function renderMixdown(
   return offlineCtx.startRendering();
 }
 
+/** A smooth tanh-based soft-clip/saturation curve for WaveShaperNode. */
+function makeSoftClipCurve(amount = 0.98, samples = 1024): Float32Array {
+  const curve = new Float32Array(samples);
+  for (let i = 0; i < samples; i++) {
+    const x = (i / (samples - 1)) * 2 - 1;
+    curve[i] = Math.tanh(x * 1.5) * amount;
+  }
+  return curve;
+}
+
+/**
+ * One-click "auto-master": no manual knobs, just gain-stage the mix up to
+ * a sensible peak, then glue it together with a fixed compressor and tame
+ * any remaining peaks with a soft-clip saturator. Not broadcast-grade
+ * mastering — Web Audio has no true brickwall limiter, so the soft-clip is
+ * a "loudness-maximizer lite," not a substitute for real mastering.
+ *
+ * Takes an already-rendered mixdown buffer (from `renderMixdown`) rather
+ * than being folded into that function, so the two stay independently
+ * simple: peak analysis reads the buffer's own PCM data directly (no
+ * render pass needed just to measure it), then a single offline render
+ * applies the master chain.
+ */
+export async function applyAutoMaster(buffer: AudioBuffer): Promise<AudioBuffer> {
+  let peak = 0;
+  for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+    const data = buffer.getChannelData(channel);
+    for (let i = 0; i < data.length; i++) {
+      const abs = Math.abs(data[i]);
+      if (abs > peak) peak = abs;
+    }
+  }
+
+  const targetPeak = 0.9;
+  const preGain = peak > 0 ? Math.min(4, targetPeak / peak) : 1;
+
+  const offlineCtx = new OfflineAudioContext(buffer.numberOfChannels, buffer.length, buffer.sampleRate);
+  const source = offlineCtx.createBufferSource();
+  source.buffer = buffer;
+
+  const preGainNode = offlineCtx.createGain();
+  preGainNode.gain.value = preGain;
+
+  const compressor = offlineCtx.createDynamicsCompressor();
+  compressor.threshold.value = -18;
+  compressor.knee.value = 12;
+  compressor.ratio.value = 3;
+  compressor.attack.value = 0.003;
+  compressor.release.value = 0.25;
+
+  const shaper = offlineCtx.createWaveShaper();
+  // WaveShaperNode.curve's DOM type pins the buffer to ArrayBuffer, which
+  // TS can't infer from a plain `new Float32Array(n)` in this TS version.
+  shaper.curve = makeSoftClipCurve() as Float32Array<ArrayBuffer>;
+  shaper.oversample = '4x';
+
+  const makeupGain = offlineCtx.createGain();
+  makeupGain.gain.value = 1.4; // roughly compensates the compressor's average gain reduction
+
+  source.connect(preGainNode).connect(compressor).connect(shaper).connect(makeupGain).connect(offlineCtx.destination);
+  source.start(0);
+
+  return offlineCtx.startRendering();
+}
+
 /** Encodes an AudioBuffer as a 16-bit PCM WAV Blob. */
 export function audioBufferToWav(buffer: AudioBuffer): Blob {
   const numChannels = buffer.numberOfChannels;

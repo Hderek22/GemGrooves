@@ -17,6 +17,8 @@ interface TransportProps {
   onDownloadMix: () => void;
   canDownloadMix: boolean;
   isDownloadingMix: boolean;
+  autoMaster: boolean;
+  onAutoMasterChange: (enabled: boolean) => void;
   bpm: number;
   onBpmChange: (bpm: number) => void;
   countInEnabled: boolean;
@@ -44,6 +46,8 @@ function Transport({
   onDownloadMix,
   canDownloadMix,
   isDownloadingMix,
+  autoMaster,
+  onAutoMasterChange,
   bpm,
   onBpmChange,
   countInEnabled,
@@ -96,6 +100,14 @@ function Transport({
         >
           {isDownloadingMix ? 'Rendering…' : '⇩ Download mix'}
         </button>
+        <label className={styles.countInToggle} title="Gain-stage and glue the mix together automatically before export/mint — not broadcast-grade mastering">
+          <input
+            type="checkbox"
+            checked={autoMaster}
+            onChange={(event) => onAutoMasterChange(event.target.checked)}
+          />
+          Auto-master
+        </label>
         <span className={styles.time}>
           {formatTime(currentTime)} / {formatTime(durationSec)}
         </span>

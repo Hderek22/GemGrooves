@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
+  applyAutoMaster,
   audioBufferToWav,
   decodeBlobToBuffer,
   DEFAULT_TRACK_FX,
@@ -257,22 +258,26 @@ export function useMultiTrackSession() {
     setCurrentTime(0);
   }, [getController]);
 
-  const renderMixdownFile = useCallback(async () => {
-    const audioBuffer = await renderMixdown(
-      tracks.map((track) => ({
-        buffer: track.buffer,
-        gain: track.gain,
-        muted: track.muted,
-        offsetSec: track.offsetSec,
-        looped: track.looped,
-        fx: track.fx,
-        playbackRate: track.playbackRate,
-      })),
-      sessionDurationSec
-    );
-    const wavBlob = audioBufferToWav(audioBuffer);
-    return new File([wavBlob], 'gemgroove-mixdown.wav', { type: 'audio/wav' });
-  }, [tracks, sessionDurationSec]);
+  const renderMixdownFile = useCallback(
+    async (autoMaster = false) => {
+      let audioBuffer = await renderMixdown(
+        tracks.map((track) => ({
+          buffer: track.buffer,
+          gain: track.gain,
+          muted: track.muted,
+          offsetSec: track.offsetSec,
+          looped: track.looped,
+          fx: track.fx,
+          playbackRate: track.playbackRate,
+        })),
+        sessionDurationSec
+      );
+      if (autoMaster) audioBuffer = await applyAutoMaster(audioBuffer);
+      const wavBlob = audioBufferToWav(audioBuffer);
+      return new File([wavBlob], 'gemgroove-mixdown.wav', { type: 'audio/wav' });
+    },
+    [tracks, sessionDurationSec]
+  );
 
   return {
     tracks,

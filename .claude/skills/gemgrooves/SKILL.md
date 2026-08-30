@@ -115,6 +115,22 @@ duration and playback position are in different units once
 offset argument is buffer-native seconds, unaffected by playback rate) —
 see the comments there before touching that method again.
 
+### One-click auto-master
+
+`audioEngine.ts`'s `applyAutoMaster(buffer)` is a post-processing step
+over an already-rendered mixdown, not folded into `renderMixdown` itself:
+it scans the buffer's own PCM samples directly for peak (no render pass
+needed just to measure it), computes a pre-gain to bring that peak up to
+~90% full scale, then runs one more offline render through a fixed glue
+compressor + `WaveShaperNode` soft-clip saturator. No manual knobs — "auto"
+means the gain-staging is derived from the audio itself. Toggled via
+Transport's "Auto-master" checkbox (`TheStudio.tsx`'s `autoMaster` state),
+which `useMultiTrackSession.ts`'s `renderMixdownFile(autoMaster)` applies
+before WAV-encoding — used at both mixdown call sites (mint flow, manual
+download). Web Audio has no true brickwall limiter, so this is explicitly
+"loudness-maximizer lite," not real mastering — said plainly in the UI
+tooltip too.
+
 ## Minting / on-chain flow
 
 - `hooks/useIpfsUpload.ts` — uploads audio + metadata JSON to IPFS via
