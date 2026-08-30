@@ -44,6 +44,8 @@ export interface PlaybackTrack {
   /** Loop-pedal mode: keep repeating this track's buffer instead of playing it once. */
   looped: boolean;
   fx: TrackFx;
+  /** 1 = native speed. Tempo-synced loop-library tracks use sessionBpm / loopNativeBpm. */
+  playbackRate: number;
 }
 
 interface TrackFxNodes {
@@ -168,23 +170,31 @@ export class PlaybackController {
     this.masterGain = masterGain;
 
     for (const track of tracks) {
+      const rate = track.playbackRate || 1;
+      // Wall-clock duration this track actually plays for — differs from
+      // buffer.duration once playbackRate != 1 (tempo-synced loop tracks).
+      const effectiveDuration = track.buffer.duration / rate;
       const intoBuffer = positionSec - track.offsetSec;
-      if (!track.looped && intoBuffer >= track.buffer.duration) continue;
+      if (!track.looped && intoBuffer >= effectiveDuration) continue;
 
       const source = this.ctx.createBufferSource();
       source.buffer = track.buffer;
+      source.playbackRate.value = rate;
       const gainNode = this.ctx.createGain();
       gainNode.gain.value = isAudible(track, anySolo) ? track.gain : 0;
       source.connect(gainNode);
       const { output, nodes: fxNodes } = buildTrackFxChain(this.ctx, gainNode, track.fx);
       output.connect(masterGain);
 
+      // AudioBufferSourceNode.start()'s offset argument is buffer-native
+      // seconds, unaffected by playbackRate — wall-clock elapsed time has
+      // to be scaled by `rate` to land on the right sample in the buffer.
       if (track.looped) {
         source.loop = true;
-        const loopOffset = intoBuffer >= 0 ? intoBuffer % track.buffer.duration : 0;
-        source.start(ctxStart - Math.min(0, intoBuffer), loopOffset);
+        const wallOffsetIntoLoop = intoBuffer >= 0 ? intoBuffer % effectiveDuration : 0;
+        source.start(ctxStart - Math.min(0, intoBuffer), wallOffsetIntoLoop * rate);
       } else if (intoBuffer >= 0) {
-        source.start(ctxStart, intoBuffer);
+        source.start(ctxStart, intoBuffer * rate);
       } else {
         source.start(ctxStart - intoBuffer);
       }
@@ -261,6 +271,7 @@ export interface MixdownTrack {
   offsetSec: number;
   looped: boolean;
   fx: TrackFx;
+  playbackRate: number;
 }
 
 export async function renderMixdown(
@@ -279,6 +290,7 @@ export async function renderMixdown(
     if (track.muted) continue;
     const source = offlineCtx.createBufferSource();
     source.buffer = track.buffer;
+    source.playbackRate.value = track.playbackRate || 1;
     if (track.looped) source.loop = true;
     const gainNode = offlineCtx.createGain();
     gainNode.gain.value = track.gain;

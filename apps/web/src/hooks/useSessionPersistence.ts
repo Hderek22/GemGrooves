@@ -27,6 +27,8 @@ interface TrackRow {
   fx_comp_threshold: number | null;
   fx_comp_ratio: number | null;
   fx_reverb_wet: number | null;
+  playback_rate: number | null;
+  source_loop_id: string | null;
 }
 
 function fxFromRow(row: TrackRow): TrackFx {
@@ -89,6 +91,8 @@ async function downloadAndDecodeTrack(row: TrackRow): Promise<StudioTrack> {
     offsetSec: row.offset_sec,
     looped: row.looped ?? false,
     fx: fxFromRow(row),
+    playbackRate: row.playback_rate ?? 1,
+    sourceLoopId: row.source_loop_id ?? undefined,
     remoteId: row.id,
     storagePath: row.storage_path,
   };
@@ -103,6 +107,8 @@ function trackMetadataPatch(row: TrackRow): TrackPatch {
     offsetSec: row.offset_sec,
     looped: row.looped ?? false,
     fx: fxFromRow(row),
+    playbackRate: row.playback_rate ?? 1,
+    sourceLoopId: row.source_loop_id ?? undefined,
   };
 }
 
@@ -212,6 +218,8 @@ export function useSessionPersistence(
               offset_sec: track.offsetSec,
               looped: track.looped,
               ...fxToRow(track.fx),
+              playback_rate: track.playbackRate,
+              source_loop_id: track.sourceLoopId ?? null,
             })
             .select('id')
             .single();
@@ -233,6 +241,8 @@ export function useSessionPersistence(
               offset_sec: track.offsetSec,
               looped: track.looped,
               ...fxToRow(track.fx),
+              playback_rate: track.playbackRate,
+              source_loop_id: track.sourceLoopId ?? null,
             })
             .eq('id', track.remoteId);
           if (trackUpdateError) throw new Error(trackUpdateError.message);

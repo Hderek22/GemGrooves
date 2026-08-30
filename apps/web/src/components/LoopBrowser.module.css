@@ -1,0 +1,28 @@
+.browser {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: var(--color-gray-900);
+  border: 1px solid var(--color-gray-700);
+  border-radius: 0.5rem;
+}
+
+.loop {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  background: var(--color-gray-800);
+  border-radius: 0.4rem;
+  font-size: 0.85em;
+}
+
+.name {
+  font-weight: 600;
+}
+
+.rate {
+  color: var(--color-gray-400);
+  font-size: 0.85em;
+}

@@ -49,7 +49,7 @@ Keep this file current — see "Keeping this skill current" at the bottom.
 ### StudioTrack model
 
 Fields: `id, name, blob, buffer, durationSec, gain, muted, solo, offsetSec,
-looped, fx, remoteId?, storagePath?`.
+looped, fx, playbackRate, sourceLoopId?, remoteId?, storagePath?`.
 
 Adding a new per-track property touches ~5 places — check all of them:
 1. `StudioTrack` interface + `TrackPatch` (`useMultiTrackSession.ts`)
@@ -87,6 +87,33 @@ in `audioEngine.ts` is the one function both `PlaybackController.play` and
 satisfy `BaseAudioContext` — keeping live/offline parity by construction
 rather than by convention. Reverb uses a synthetic noise-decay impulse
 response generated in code (`buildImpulseResponse`), not a bundled asset.
+
+### Tempo-aware loop library
+
+`lib/loopLibrary.ts` defines a small built-in loop pack — **synthesized in
+code at import time** (simple kick/hat/bass patterns via oscillators and
+filtered noise, `renderLoopAudio()` bounces one to a WAV `Blob` via an
+`OfflineAudioContext`), not bundled audio assets. No licensing concerns,
+and it exercises the same tempo-sync path a real sample pack would need.
+`LoopBrowser` (toggled from `TheStudio.tsx`) adds a loop at the current
+playhead via the ordinary `addTrack()` path — no special-cased "loop
+track" concept in the data model, just a `StudioTrack` with `looped: true`
+and `playbackRate = sessionBpm / loop.bpm`.
+
+`playbackRate` is threaded through `PlaybackTrack`/`MixdownTrack` in
+`audioEngine.ts` and is the **first place `StudioTrack.durationSec` means
+something other than `buffer.duration`**: `durationSec` is the wall-clock
+(tempo-adjusted) duration everywhere it's used (timeline clip width,
+`sessionDurationSec`), so `addTrack()` computes it as `buffer.duration /
+playbackRate` rather than storing the raw buffer length. Every existing
+caller passes the default `playbackRate = 1`, at which point this is
+identical to before — no behavior change for non-loop tracks.
+
+`PlaybackController.play`'s loop-scheduling math needed care: buffer
+duration and playback position are in different units once
+`playbackRate != 1` (position is wall-clock seconds; `source.start()`'s
+offset argument is buffer-native seconds, unaffected by playback rate) —
+see the comments there before touching that method again.
 
 ## Minting / on-chain flow
 

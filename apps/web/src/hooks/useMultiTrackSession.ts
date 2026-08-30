@@ -20,6 +20,7 @@ export interface StudioTrack {
   name: string;
   blob: Blob;
   buffer: AudioBuffer;
+  /** Wall-clock (tempo-adjusted) duration — equals buffer.duration unless playbackRate != 1. */
   durationSec: number;
   gain: number;
   muted: boolean;
@@ -28,6 +29,10 @@ export interface StudioTrack {
   /** Loop-pedal mode: keep repeating this track while other tracks are dubbed on top. */
   looped: boolean;
   fx: TrackFx;
+  /** 1 = native speed. Tempo-synced loop-library tracks use sessionBpm / loopNativeBpm. */
+  playbackRate: number;
+  /** Which built-in loop (lib/loopLibrary.ts) this track came from, if any. */
+  sourceLoopId?: string;
   /** Set once this track has been uploaded to Supabase Storage; absence means "not yet saved." */
   remoteId?: string;
   storagePath?: string;
@@ -36,7 +41,17 @@ export interface StudioTrack {
 export type TrackPatch = Partial<
   Pick<
     StudioTrack,
-    'name' | 'gain' | 'muted' | 'solo' | 'offsetSec' | 'looped' | 'fx' | 'remoteId' | 'storagePath'
+    | 'name'
+    | 'gain'
+    | 'muted'
+    | 'solo'
+    | 'offsetSec'
+    | 'looped'
+    | 'fx'
+    | 'playbackRate'
+    | 'sourceLoopId'
+    | 'remoteId'
+    | 'storagePath'
   >
 >;
 
@@ -54,6 +69,7 @@ function toPlaybackTracks(tracks: StudioTrack[]): PlaybackTrack[] {
     offsetSec: track.offsetSec,
     looped: track.looped,
     fx: track.fx,
+    playbackRate: track.playbackRate,
   }));
 }
 
@@ -114,7 +130,7 @@ export function useMultiTrackSession() {
   }, [tracks, isPlaying, getController]);
 
   const addTrack = useCallback(
-    async (blob: Blob, name: string, offsetSec: number) => {
+    async (blob: Blob, name: string, offsetSec: number, playbackRate = 1) => {
       setIsDecoding(true);
       try {
         const ctx = getAudioContext();
@@ -124,13 +140,14 @@ export function useMultiTrackSession() {
           name,
           blob,
           buffer,
-          durationSec: buffer.duration,
+          durationSec: buffer.duration / playbackRate,
           gain: 1,
           muted: false,
           solo: false,
           offsetSec,
           looped: false,
           fx: DEFAULT_TRACK_FX,
+          playbackRate,
         };
         setTracks((prev) => [...prev, track]);
         return track;
@@ -249,6 +266,7 @@ export function useMultiTrackSession() {
         offsetSec: track.offsetSec,
         looped: track.looped,
         fx: track.fx,
+        playbackRate: track.playbackRate,
       })),
       sessionDurationSec
     );
@@ -274,6 +292,7 @@ export function useMultiTrackSession() {
     setSessionId,
     sessionName,
     setSessionName,
+    addTrack,
     addTrackFromFile,
     loadTracks,
     removeTrack,

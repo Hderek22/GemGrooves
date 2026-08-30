@@ -42,6 +42,11 @@ create table if not exists studio_tracks (
   fx_comp_threshold real,
   fx_comp_ratio real,
   fx_reverb_wet real,
+  -- Tempo-aware loop library. playback_rate = sessionBpm / loop's native
+  -- bpm at the moment it was dropped in; source_loop_id just tags which
+  -- built-in loop (lib/loopLibrary.ts) it came from, for display/debugging.
+  playback_rate real not null default 1,
+  source_loop_id text,
   created_at timestamptz not null default now()
 );
 
@@ -55,6 +60,8 @@ alter table studio_tracks add column if not exists fx_eq_high real;
 alter table studio_tracks add column if not exists fx_comp_threshold real;
 alter table studio_tracks add column if not exists fx_comp_ratio real;
 alter table studio_tracks add column if not exists fx_reverb_wet real;
+alter table studio_tracks add column if not exists playback_rate real not null default 1;
+alter table studio_tracks add column if not exists source_loop_id text;
 
 -- Studio Phase 3, part 2: link-based sharing. A session is only joinable
 -- by a stranger with the link while this is true — the owner turns it on

@@ -4,6 +4,7 @@ import { isAddress, parseUnits, type Address } from 'viem';
 import { useAccount } from 'wagmi';
 
 import gemGrooveThumb from '../assets/GemGrooveThumb.jpg';
+import LoopBrowser from '../components/LoopBrowser';
 import SessionPicker from '../components/SessionPicker';
 import Timeline from '../components/Timeline';
 import Transport from '../components/Transport';
@@ -13,6 +14,7 @@ import { useMultiTrackSession } from '../hooks/useMultiTrackSession';
 import { usePayTokenOptions } from '../hooks/usePayTokenOptions';
 import { useSessionPersistence } from '../hooks/useSessionPersistence';
 import { useSiweAuth } from '../hooks/useSiweAuth';
+import { renderLoopAudio, type LoopDefinition } from '../lib/loopLibrary';
 import buttons from '../styles/buttons.module.css';
 import layout from '../styles/layout.module.css';
 import styles from './TheStudio.module.css';
@@ -51,6 +53,8 @@ function TheStudio() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRendering, setIsRendering] = useState(false);
   const [isDownloadingMix, setIsDownloadingMix] = useState(false);
+  const [showLoops, setShowLoops] = useState(false);
+  const [isAddingLoop, setIsAddingLoop] = useState(false);
 
   useEffect(() => {
     if (address) {
@@ -215,6 +219,21 @@ function TheStudio() {
     }
   };
 
+  const handleAddLoop = async (loop: LoopDefinition) => {
+    setIsAddingLoop(true);
+    setFormError(null);
+    try {
+      const blob = await renderLoopAudio(loop);
+      const playbackRate = session.bpm / loop.bpm;
+      const track = await session.addTrack(blob, loop.name, session.currentTime, playbackRate);
+      session.updateTrack(track.id, { looped: true, sourceLoopId: loop.id });
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Could not add that loop.');
+    } finally {
+      setIsAddingLoop(false);
+    }
+  };
+
   const handleDownloadMix = async () => {
     setIsDownloadingMix(true);
     setFormError(null);
@@ -291,6 +310,15 @@ function TheStudio() {
           onCountInEnabledChange={session.setCountInEnabled}
           micError={session.micError?.message}
         />
+
+        <div className={styles.row}>
+          <button type="button" className={buttons.pillOutline} onClick={() => setShowLoops((prev) => !prev)}>
+            {showLoops ? 'Hide loops' : 'Loops'}
+          </button>
+        </div>
+        {showLoops && (
+          <LoopBrowser sessionBpm={session.bpm} isAdding={isAddingLoop} onAddLoop={(loop) => void handleAddLoop(loop)} />
+        )}
 
         {session.tracks.length === 0 ? (
           <p className={styles.hint}>Record or drop audio files here to start building your GemGroove.</p>
