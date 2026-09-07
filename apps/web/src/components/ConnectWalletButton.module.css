@@ -1,0 +1,98 @@
+.wrapper {
+  position: relative;
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: transparent;
+  border: 1px solid var(--color-gray-700);
+  color: var(--color-gray-400);
+  font-size: 0.65em;
+  font-weight: 600;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.trigger:hover {
+  background-color: var(--color-gray-800);
+  color: var(--color-primary-900);
+  border-color: var(--color-gray-600);
+}
+
+.wrongNetwork {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.wrongNetwork:hover {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+.chainIcon,
+.avatar {
+  width: 0.9em;
+  height: 0.9em;
+  border-radius: 999px;
+}
+
+.caret {
+  font-size: 0.7em;
+  color: var(--color-gray-500);
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  min-width: 11rem;
+  background: black;
+  border: 1px solid var(--color-gray-700);
+  border-radius: 0.6rem;
+  padding: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  z-index: 30;
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.5);
+}
+
+.menuAddress {
+  color: var(--color-gray-500);
+  font-size: 0.6em;
+  padding: 0.3rem 0.6rem 0.5rem;
+  border-bottom: 1px solid var(--color-gray-800);
+  margin-bottom: 0.15rem;
+  white-space: nowrap;
+}
+
+.menuItem {
+  background: transparent;
+  border: none;
+  color: var(--color-gray-300);
+  font-size: 0.65em;
+  text-align: left;
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.menuItem:hover {
+  background-color: var(--color-gray-800);
+  color: var(--color-primary-900);
+}
+
+.disconnect {
+  color: var(--color-error);
+}
+
+.disconnect:hover {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: var(--color-error);
+}

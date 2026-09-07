@@ -86,22 +86,6 @@
   align-items: baseline;
 }
 
-.splitRow {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.splitRow input[type='text'] {
-  flex: 2;
-  min-width: 0;
-}
-
-.splitRow input[type='number'] {
-  flex: 1;
-  min-width: 4rem;
-}
-
 .shareTotal {
   font-size: 0.8em;
   color: var(--color-gray-400);

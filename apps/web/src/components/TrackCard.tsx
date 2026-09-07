@@ -4,6 +4,7 @@ import { useAccount } from 'wagmi';
 
 import gemGrooveThumb from '../assets/GemGrooveThumb.jpg';
 import { useBuyTrack } from '../hooks/useBuyTrack';
+import { useEnsProfile } from '../hooks/useEns';
 import type { TrackListing } from '../hooks/useListings';
 import { useTrackMetadata } from '../hooks/useTrackMetadata';
 import { resolveIpfsUri } from '../lib/ipfs';
@@ -22,11 +23,12 @@ function TrackCard({ listing }: TrackCardProps) {
   const { data: metadata, isLoading } = useTrackMetadata(listing.tokenURI);
   const { address, isConnected } = useAccount();
   const { buyTrack, state, error } = useBuyTrack();
+  const { ensName: sellerEnsName } = useEnsProfile(listing.seller);
   const queryClient = useQueryClient();
 
   const price = formatUnits(listing.priceWei, listing.payTokenDecimals);
   const title = metadata?.name ?? `Track #${listing.tokenId}`;
-  const artist = metadata?.artist ?? truncateAddress(listing.seller);
+  const artist = metadata?.artist ?? sellerEnsName ?? truncateAddress(listing.seller);
   const image = metadata?.image ? resolveIpfsUri(metadata.image) : gemGrooveThumb;
 
   const isOwnListing = Boolean(address) && listing.seller.toLowerCase() === address?.toLowerCase();

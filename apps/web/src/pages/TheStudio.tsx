@@ -1,13 +1,15 @@
-import { useEffect, useState, type DragEvent, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { isAddress, parseUnits, type Address } from 'viem';
 import { useAccount } from 'wagmi';
 
 import gemGrooveThumb from '../assets/GemGrooveThumb.jpg';
+import CoCreatorRow from '../components/CoCreatorRow';
 import LoopBrowser from '../components/LoopBrowser';
 import SessionPicker from '../components/SessionPicker';
 import Timeline from '../components/Timeline';
 import Transport from '../components/Transport';
+import { looksLikeEnsName } from '../hooks/useEns';
 import { useIpfsUpload } from '../hooks/useIpfsUpload';
 import { useMintTrack } from '../hooks/useMintTrack';
 import { useMultiTrackSession } from '../hooks/useMultiTrackSession';
@@ -47,6 +49,10 @@ function TheStudio() {
   const [artist, setArtist] = useState('');
   const [royaltyPercent, setRoyaltyPercent] = useState(10);
   const [splits, setSplits] = useState<SplitRow[]>([{ wallet: '', sharePercent: 100 }]);
+  // Populated by each CoCreatorRow as it resolves an ENS name typed into
+  // `splits[i].wallet` — a ref, not state, so a resolution landing doesn't
+  // itself trigger a re-render; validate()/handleSubmit read it directly.
+  const resolvedAddressesRef = useRef<Map<number, Address>>(new Map());
   const [price, setPrice] = useState('0.05');
   const [payTokenIndex, setPayTokenIndex] = useState(0);
   const [formError, setFormError] = useState<string | null>(null);
@@ -107,8 +113,13 @@ function TheStudio() {
     if (!artist.trim()) return 'Add an artist name.';
     if (royaltyPercent < 0 || royaltyPercent > 50) return 'Royalty must be between 0% and 50%.';
     if (!shareTotalValid) return 'Co-creator shares must add up to exactly 100%.';
-    for (const row of splits) {
-      if (!isAddress(row.wallet)) return `"${row.wallet || '(empty)'}" is not a valid wallet address.`;
+    for (const [i, row] of splits.entries()) {
+      const effectiveAddress = resolvedAddressesRef.current.get(i) ?? row.wallet;
+      if (isAddress(effectiveAddress)) continue;
+      if (looksLikeEnsName(row.wallet)) {
+        return `Could not resolve ENS name "${row.wallet}" to an address yet.`;
+      }
+      return `"${row.wallet || '(empty)'}" is not a valid wallet address.`;
     }
     if (!(Number(price) > 0)) return 'Price must be greater than 0.';
     return null;
@@ -128,7 +139,9 @@ function TheStudio() {
     try {
       const royaltyBPS = Math.round(royaltyPercent * 100);
       const sharesBPS = splits.map((row) => Math.round(row.sharePercent * 100));
-      const wallets = splits.map((row) => row.wallet as Address);
+      const wallets = splits.map(
+        (row, i) => (resolvedAddressesRef.current.get(i) ?? row.wallet) as Address
+      );
       const selectedToken = payTokenOptions[payTokenIndex];
 
       setIsRendering(true);
@@ -139,7 +152,7 @@ function TheStudio() {
         title,
         artist,
         royaltyBPS,
-        splits: splits.map((row, i) => ({ wallet: row.wallet, shareBPS: sharesBPS[i] })),
+        splits: wallets.map((wallet, i) => ({ wallet, shareBPS: sharesBPS[i] })),
       });
 
       await mintTrack({
@@ -398,30 +411,19 @@ function TheStudio() {
               </span>
             </div>
             {splits.map((row, i) => (
-              <div className={styles.splitRow} key={i}>
-                <input
-                  type="text"
-                  placeholder="0x…"
-                  value={row.wallet}
-                  onChange={(e) => updateSplit(i, { wallet: e.target.value })}
-                />
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={0.5}
-                  value={row.sharePercent}
-                  onChange={(e) => updateSplit(i, { sharePercent: Number(e.target.value) })}
-                />
-                <button
-                  type="button"
-                  className={buttons.pillOutline}
-                  onClick={() => removeSplit(i)}
-                  disabled={splits.length === 1}
-                >
-                  &minus;
-                </button>
-              </div>
+              <CoCreatorRow
+                key={i}
+                wallet={row.wallet}
+                sharePercent={row.sharePercent}
+                canRemove={splits.length > 1}
+                onChangeWallet={(wallet) => updateSplit(i, { wallet })}
+                onChangeShare={(sharePercent) => updateSplit(i, { sharePercent })}
+                onRemove={() => removeSplit(i)}
+                onResolvedAddress={(resolved) => {
+                  if (resolved) resolvedAddressesRef.current.set(i, resolved);
+                  else resolvedAddressesRef.current.delete(i);
+                }}
+              />
             ))}
             <button type="button" className={buttons.pillOutline} onClick={addSplit}>
               + Add co-creator

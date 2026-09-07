@@ -1,0 +1,27 @@
+.row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.row input[type='text'] {
+  flex: 2;
+  min-width: 0;
+}
+
+.row input[type='number'] {
+  flex: 1;
+  min-width: 4rem;
+}
+
+.hint {
+  margin: 0.2rem 0 0.4rem;
+  font-size: 0.65em;
+  color: var(--color-gray-500);
+  overflow-wrap: anywhere;
+}
+
+.hintError {
+  composes: hint;
+  color: var(--color-error);
+}

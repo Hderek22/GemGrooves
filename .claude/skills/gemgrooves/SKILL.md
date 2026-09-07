@@ -131,6 +131,24 @@ download). Web Audio has no true brickwall limiter, so this is explicitly
 "loudness-maximizer lite," not real mastering — said plainly in the UI
 tooltip too.
 
+## ENS
+
+`lib/ensConfig.ts` is a second, mainnet-only wagmi `Config` (`createConfig({
+chains: [mainnet], transports: { [mainnet.id]: http() } })`), separate from
+the app's real chain config in `lib/wagmi.ts` (hardhat/baseSepolia/base —
+never mainnet, since that's not where the contracts live). ENS records only
+exist on mainnet, so `hooks/useEns.ts`'s `useEnsProfile`/`useEnsAddressLookup`
+pass `config: ensConfig` explicitly into wagmi's `useEnsName`/`useEnsAvatar`/
+`useEnsAddress` — the standard wagmi pattern for resolving ENS in a
+multi-chain app that doesn't otherwise touch mainnet. Used in
+`ConnectWalletButton` (nav trigger shows the ENS name/avatar over the raw
+address when one resolves), `TrackCard` (artist label falls back to the
+seller's ENS name before a truncated address), and `CoCreatorRow` (mint
+form's royalty-split wallet fields accept a typed `name.eth` and resolve it
+to an address, reported to `TheStudio.tsx` via a ref — not state, so a
+resolution landing doesn't itself trigger a re-render — that `validate()`/
+`handleSubmit` read at submit time).
+
 ## Minting / on-chain flow
 
 - `hooks/useIpfsUpload.ts` — uploads audio + metadata JSON to IPFS via
